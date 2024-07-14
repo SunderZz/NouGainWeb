@@ -11,11 +11,17 @@
         <MDBCard>
           <MDBCardBody>
             <MDBRow>
-              <MDBCol md="12" class="mb-3">
+              <MDBCol v-if="!emailSent" md="12" class="mb-3">
                 <MDBInput v-model="email" label="Adresse e-mail" type="email" />
+                <div v-if="errorMessage" class="text-danger mt-2">{{ errorMessage }}</div>
               </MDBCol>
-              <MDBCol md="12" class="text-center">
+              <MDBCol v-if="!emailSent" md="12" class="text-center">
                 <MDBBtn color="primary" @click="sendPassword">Envoyer</MDBBtn>
+              </MDBCol>
+              <MDBCol v-if="emailSent" md="12" class="text-center mt-4">
+                <div class="alert alert-success">
+                  Un mail a bien été envoyé.
+                </div>
               </MDBCol>
             </MDBRow>
           </MDBCardBody>
@@ -37,15 +43,35 @@ import {
   MDBBtn,
 } from "mdb-vue-ui-kit";
 
-const email = ref("");
+const email = ref<string>("");
+const emailSent = ref<boolean>(false);
+const errorMessage = ref<string>("");
 
-const sendPassword = () => {
-  console.log("Mot de passe envoyé à", email.value);
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const sendPassword = async (): Promise<void> => {
+  if (!validateEmail(email.value)) {
+    errorMessage.value = "Format de l'adresse e-mail incorrect.";
+    return;
+  }
+  emailSent.value = true;
+
 };
 </script>
 
 <style scoped>
 .text-center {
   text-align: center;
+}
+
+.text-danger {
+  color: red;
+}
+
+.alert {
+  margin-top: 20px;
 }
 </style>

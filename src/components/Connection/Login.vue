@@ -42,6 +42,7 @@
     </MDBRow>
   </MDBContainer>
 </template>
+
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
@@ -56,16 +57,21 @@ import {
   MDBBtn,
 } from "mdb-vue-ui-kit";
 
-const loginInfo = ref({
+interface LoginInfo {
+  email: string;
+  password: string;
+}
+
+const loginInfo = ref<LoginInfo>({
   email: "",
   password: "",
 });
 
-const errorMessage = ref("");
+const errorMessage = ref<string>("");
 
 const router = useRouter();
 
-const login = async () => {
+const login = async (): Promise<void> => {
   try {
     const response = await axios.post(
       `http://127.0.0.1:8000/users/login?mail=${loginInfo.value.email}&password=${loginInfo.value.password}`,
@@ -80,11 +86,11 @@ const login = async () => {
     localStorage.setItem("authToken", token);
     router.push("/");
   } catch (error) {
-    console.error("Erreur de connexion:", error);
     errorMessage.value = "Adresse e-mail ou mot de passe incorrect.";
   }
 };
 </script>
+
 <style scoped>
 .text-center {
   text-align: center;
