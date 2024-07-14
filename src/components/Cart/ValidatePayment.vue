@@ -20,10 +20,6 @@
                 {{ orderInfo.amountHT.toFixed(2) }} €
               </li>
               <li>
-                <strong>Montant de la TVA :</strong>
-                {{ orderInfo.tvaAmount.toFixed(2) }} €
-              </li>
-              <li>
                 <strong>Montant total de la commande :</strong>
                 {{ orderInfo.totalAmount.toFixed(2) }} €
               </li>
@@ -67,8 +63,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
+import { useStore } from "vuex";
 import axios from "axios";
 import {
   MDBContainer,
@@ -78,32 +75,54 @@ import {
   MDBCardBody,
 } from "mdb-vue-ui-kit";
 
-const route = useRoute();
+// Types pour les données
+interface OrderInfo {
+  orderNumber: string;
+  expectedDate: string;
+  amountHT: number;
+  totalAmount: number;
+  deliveryAddress: string;
+}
 
-const orderInfo = ref({
+interface Product {
+  Id_Product: number;
+  Name: string;
+  Description: string;
+  Price_ht: number;
+  image: string;
+  quantity: number;
+}
+
+// Utiliser la route pour obtenir les informations de la commande
+const route = useRoute();
+const store = useStore();
+
+const orderInfo = ref<OrderInfo>({
   orderNumber: "",
   expectedDate: "",
   amountHT: 0,
-  tvaAmount: 0,
   totalAmount: 0,
   deliveryAddress: "",
 });
 
-const products = ref([]);
+const products = ref<Product[]>([]);
 
-const fetchOrderDetails = async () => {
+const fetchOrderDetails = async (): Promise<void> => {
   const orderId = localStorage.getItem("orderId");
-  const preferenceShip = route.query.preferenceShip;
 
   if (!orderId) {
-    console.error("OrderId non trouvé dans le localStorage");
     return;
   }
 
-  orderInfo.value.orderNumber = orderId;
-  orderInfo.value.deliveryAddress = preferenceShip;
-
   try {
+    const orderResponse = await axios.get(
+      `http://127.0.0.1:8000/orders_by_id/?id_orders=${orderId}`
+    );
+    const orderData = orderResponse.data;
+    orderInfo.value.orderNumber = orderId;
+    orderInfo.value.expectedDate = orderData.Ship_Date;
+    orderInfo.value.deliveryAddress = orderData.Preference_Ship;
+
     const response = await axios.get(`http://127.0.0.1:8000/linede/${orderId}`);
     let lineItems = response.data;
 
@@ -111,34 +130,46 @@ const fetchOrderDetails = async () => {
       lineItems = [lineItems];
     }
 
-    const productRequests = lineItems.map(async (item) => {
+    const productRequests = lineItems.map(async (item: any) => {
       const productResponse = await axios.get(
         `http://127.0.0.1:8000/products_by_id/?id=${item.Id_Product}`
       );
-      const product = productResponse.data;
+      const product: Product = productResponse.data;
       product.quantity = item.qte;
       product.priceHT = product.Price_ht;
-      product.image = product.image_url || "https://via.placeholder.com/100"; // assuming `image_url` exists in your product data
+      product.image = product.image_url || "https://via.placeholder.com/100";
       orderInfo.value.amountHT += product.priceHT * product.quantity;
       return product;
     });
 
     products.value = await Promise.all(productRequests);
 
-    // Calculate TVA and total amount
-    orderInfo.value.tvaAmount = orderInfo.value.amountHT * 0.2; // Assuming 20% TVA
-    orderInfo.value.totalAmount =
-      orderInfo.value.amountHT + orderInfo.value.tvaAmount;
+    orderInfo.value.totalAmount = orderInfo.value.amountHT;
   } catch (error) {
-    console.error(
-      "Erreur lors de la récupération des produits du panier:",
-      error
-    );
   }
 };
 
+const cleanUpTokens = (): void => {
+  const authToken = localStorage.getItem("authToken");
+  const orderId = localStorage.getItem("orderId");
+  localStorage.clear();
+  if (authToken) {
+    localStorage.setItem("authToken", authToken);
+  }
+  if (orderId) {
+    localStorage.setItem("orderId", orderId);
+  }
+
+  store.commit("RESET_CART_ITEM_COUNT");
+};
+
 onMounted(() => {
+  cleanUpTokens();
   fetchOrderDetails();
+});
+
+onBeforeUnmount(() => {
+  localStorage.removeItem("orderId");
 });
 </script>
 

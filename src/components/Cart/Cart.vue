@@ -102,24 +102,28 @@
               label="Adresse"
               type="text"
               class="mb-3"
+              :disabled="isDeliveryFieldsDisabled"
             />
             <MDBInput
               v-model="deliveryForm.phone"
               label="Téléphone"
               type="text"
               class="mb-3"
+              :disabled="isDeliveryFieldsDisabled"
             />
             <MDBInput
               v-model="deliveryForm.postalCode"
               label="Code Postal"
               type="text"
               class="mb-3"
+              :disabled="isDeliveryFieldsDisabled"
             />
             <MDBInput
               v-model="deliveryForm.city"
               label="Ville"
               type="text"
               class="mb-3"
+              :disabled="isDeliveryFieldsDisabled"
             />
           </div>
         </div>
@@ -136,7 +140,7 @@
         </a>
       </MDBCol>
       <MDBCol md="4" class="text-center mb-3">
-        <MDBBtn color="success" @click="validatePayment"
+        <MDBBtn color="success" :disabled="!isDeliverySelected" @click="validatePayment"
           >Valider le paiement</MDBBtn
         >
       </MDBCol>
@@ -145,7 +149,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import axios from "axios";
 import {
   MDBContainer,
@@ -158,37 +162,89 @@ import {
 import { useRouter } from "vue-router";
 import { useStore } from "vuex";
 
+interface Product {
+  Id_Product: number;
+  Name: string;
+  Description: string;
+  Price_ht: number;
+  image: string;
+  quantity: number;
+}
+
+interface PersonalInfo {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+}
+
+interface DeliveryInfo {
+  homeDelivery: boolean;
+  relayPoint: boolean;
+}
+
+interface DeliveryForm {
+  address: string;
+  phone: string;
+  postalCode: string;
+  city: string;
+}
+
+interface ProducerAddress {
+  Adresse: string;
+  Phone: string;
+  Creation: string;
+  Modification: string | null;
+  Latitude: number | null;
+  Longitude: number | null;
+}
+
 const store = useStore();
 const router = useRouter();
 
-const products = ref([]);
+const products = ref<Product[]>([]);
 
-const personalInfo = ref({
+const personalInfo = ref<PersonalInfo>({
   firstName: "",
   lastName: "",
   email: "",
   phone: "",
 });
 
-const deliveryInfo = ref({
+const deliveryInfo = ref<DeliveryInfo>({
   homeDelivery: false,
   relayPoint: false,
 });
 
-const deliveryForm = ref({
+const deliveryForm = ref<DeliveryForm>({
   address: "",
   phone: "",
   postalCode: "",
   city: "",
 });
 
-let producerAddress = ref("");
-let userAddress = ref("");
+const producerAddress = ref<ProducerAddress>({
+  Adresse: "",
+  Phone: "",
+  Creation: "",
+  Modification: null,
+  Latitude: null,
+  Longitude: null,
+});
 
-const fetchPersonalInfo = async () => {
+const userAddress = ref<string>("");
+
+const isDeliverySelected = computed(() => {
+  return deliveryInfo.value.homeDelivery || deliveryInfo.value.relayPoint;
+});
+
+const isDeliveryFieldsDisabled = computed(() => {
+  return true;
+});
+
+const fetchPersonalInfo = async (): Promise<void> => {
   const token = localStorage.getItem("authToken");
   if (!token) {
-    console.error("Token non trouvé");
     return;
   }
 
@@ -201,17 +257,12 @@ const fetchPersonalInfo = async () => {
     personalInfo.value.lastName = userResponse.data.Name;
     personalInfo.value.email = userResponse.data.Mail;
   } catch (error) {
-    console.error(
-      "Erreur lors de la récupération des informations personnelles:",
-      error
-    );
   }
 };
 
-const fetchCartProducts = async () => {
+const fetchCartProducts = async (): Promise<void> => {
   const orderId = localStorage.getItem("orderId");
   if (!orderId) {
-    console.error("OrderId non trouvé dans le localStorage");
     return;
   }
 
@@ -223,7 +274,7 @@ const fetchCartProducts = async () => {
       lineItems = [lineItems];
     }
 
-    const productRequests = lineItems.map(async (item) => {
+    const productRequests = lineItems.map(async (item: any) => {
       const productResponse = await axios.get(
         `http://127.0.0.1:8000/products_by_id/?id=${item.Id_Product}`
       );
@@ -232,18 +283,14 @@ const fetchCartProducts = async () => {
 
     products.value = await Promise.all(productRequests);
   } catch (error) {
-    console.error(
-      "Erreur lors de la récupération des produits du panier:",
-      error
-    );
   }
 };
 
-const incrementQuantity = async (product) => {
+const incrementQuantity = async (product: Product): Promise<void> => {
   product.quantity++;
   localStorage.setItem(
     `product_${product.Id_Product}_quantity`,
-    product.quantity
+    product.quantity.toString()
   );
   await addOrUpdateCart(product.Id_Product, product.quantity);
 
@@ -254,12 +301,12 @@ const incrementQuantity = async (product) => {
   });
 };
 
-const decrementQuantity = async (product, index) => {
+const decrementQuantity = async (product: Product, index: number): Promise<void> => {
   if (product.quantity > 0) {
     product.quantity--;
     localStorage.setItem(
       `product_${product.Id_Product}_quantity`,
-      product.quantity
+      product.quantity.toString()
     );
     await addOrUpdateCart(product.Id_Product, product.quantity);
 
@@ -279,10 +326,9 @@ const decrementQuantity = async (product, index) => {
   }
 };
 
-const removeProduct = async (productId, index) => {
+const removeProduct = async (productId: number, index: number): Promise<void> => {
   const orderId = localStorage.getItem("orderId");
   if (!orderId) {
-    console.error("OrderId non trouvé dans le localStorage");
     return;
   }
 
@@ -292,14 +338,12 @@ const removeProduct = async (productId, index) => {
     localStorage.removeItem(`product_${productId}_quantity`);
     store.commit("DECREMENT_CART_ITEM_COUNT");
   } catch (error) {
-    console.error("Erreur lors de la suppression du produit du panier:", error);
   }
 };
 
-const addOrUpdateCart = async (productId, quantity) => {
+const addOrUpdateCart = async (productId: number, quantity: number): Promise<void> => {
   const orderId = localStorage.getItem("orderId");
   if (!orderId) {
-    console.error("OrderId non trouvé dans le localStorage");
     return;
   }
 
@@ -310,17 +354,12 @@ const addOrUpdateCart = async (productId, quantity) => {
       qte: quantity,
     });
   } catch (error) {
-    console.error(
-      "Erreur lors de la mise à jour du produit dans le panier:",
-      error
-    );
   }
 };
 
-const emptyCart = async () => {
+const emptyCart = async (): Promise<void> => {
   const orderId = localStorage.getItem("orderId");
   if (!orderId) {
-    console.error("OrderId non trouvé dans le localStorage");
     return;
   }
 
@@ -336,7 +375,7 @@ const emptyCart = async () => {
       );
     }
 
-    products.value.forEach((product) => {
+    products.value.forEach((product: Product) => {
       localStorage.removeItem(`product_${product.Id_Product}_quantity`);
     });
 
@@ -344,11 +383,10 @@ const emptyCart = async () => {
     localStorage.removeItem("orderId");
     store.commit("RESET_CART_ITEM_COUNT");
   } catch (error) {
-    console.error("Erreur lors du vidage du panier:", error);
   }
 };
 
-const toggleDeliveryMethod = async (method) => {
+const toggleDeliveryMethod = async (method: string): Promise<void> => {
   if (method === "home") {
     deliveryInfo.value.relayPoint = false;
     await fetchUserAddress();
@@ -358,7 +396,7 @@ const toggleDeliveryMethod = async (method) => {
       const productId = products.value[0].Id_Product;
       const producerId = await getProducerId(productId);
       const producerInfo = await getProducerInfo(producerId);
-      const addressId = await getAddressId(producerInfo.Id_Users);
+      const addressId = await getAddressId(producerInfo.Id_Users);      
       await fetchProducerAddress(addressId);
     } else {
       deliveryInfo.value.relayPoint = false;
@@ -366,96 +404,147 @@ const toggleDeliveryMethod = async (method) => {
   }
 };
 
-const fetchUserAddress = async () => {
+const fetchUserAddress = async (): Promise<void> => {
   const token = localStorage.getItem("authToken");
   if (!token) throw new Error("No auth token found");
 
-  const response = await axios.get("http://127.0.0.1:8000/users_by_token", {
-    params: { token },
-  });
-  const user = response.data;
+  try {
+    const response = await axios.get("http://127.0.0.1:8000/users_by_token", {
+      params: { token },
+    });
+    const user = response.data;
+    
+    const addressResponse = await axios.get(
+      `http://127.0.0.1:8000/adresses_types_by_user/${user.Id_Users}`
+    );
+    
+    const adresse_id = addressResponse.data;
 
-  const addressResponse = await axios.get(
-    `http://127.0.0.1:8000/adresses_types_by_user/${user.Id_Users}`
-  );
-  const adresse_id = addressResponse.data;
+    const adresseInformations = await axios.get(
+      `http://127.0.0.1:8000/adresse_of_user?adresse_id=${adresse_id.Id_Users_adresses}`
+    );
+    
+    const userAddressData = adresseInformations.data[0];
+    
+    const locatedResponse = await axios.get(
+      `http://127.0.0.1:8000/located/${adresse_id.Id_Users_adresses}`
+    );
+    const located = locatedResponse.data;
 
-  const adresseInformations = await axios.get(
-    `http://127.0.0.1:8000/adresse_of_user?adresse_id=${adresse_id[0].Id_Users_adresses}`
-  );
-  const userAddressData = adresseInformations.data;
-  const locatedResponse = await axios.get(
-    `http://127.0.0.1:8000/located/${adresse_id[0].Id_Users_adresses}`
-  );
-  const located = locatedResponse.data;
+    const codePostalResponse = await axios.get(
+      `http://127.0.0.1:8000/code_postal_informations/?code_postal=${located.Id_Code_Postal}`
+    );
+    const codePostal = codePostalResponse.data;
 
-  const codePostalResponse = await axios.get(
-    `http://127.0.0.1:8000/code_postal_informations/?code_postal=${located.Id_Code_Postal}`
-  );
-  const codePostal = codePostalResponse.data;
+    const gotResponse = await axios.get(
+      `http://127.0.0.1:8000/got/${codePostal.Id_Code_Postal}`
+    );
+    const got = gotResponse.data;
 
-  const gotResponse = await axios.get(
-    `http://127.0.0.1:8000/got/${codePostal.Id_Code_Postal}`
-  );
-  const got = gotResponse.data;
+    const cityResponse = await axios.get(
+      `http://127.0.0.1:8000/city_with_id/?city=${got.Id_City}`
+    );
+    const city = cityResponse.data;
 
-  const cityResponse = await axios.get(
-    `http://127.0.0.1:8000/city_with_id/?city=${got[0].Id_City}`
-  );
-  const city = cityResponse.data;
-
-  deliveryForm.value.address = userAddressData[0].Adresse;
-  deliveryForm.value.phone = userAddressData[0].Phone;
-  deliveryForm.value.postalCode = codePostal.code_postal;
-  deliveryForm.value.city = city.Name;
-  userAddress.value = userAddressData[0].Adresse;
+    deliveryForm.value.address = userAddressData.Adresse;
+    deliveryForm.value.phone = userAddressData.Phone;
+    deliveryForm.value.postalCode = codePostal.code_postal;
+    deliveryForm.value.city = city.Name;
+    
+    userAddress.value = userAddressData.Adresse;
+  } catch (error) {
+  }
 };
 
-const getProducerId = async (productId) => {
-  const response = await axios.get(`http://127.0.0.1:8000/give/${productId}`);
-  return response.data.Id_Producers;
+const getProducerId = async (productId: number): Promise<number> => {
+  try {
+    const response = await axios.get(`http://127.0.0.1:8000/give/${productId}`);
+    return response.data.Id_Producers;
+  } catch (error) {
+    throw error;
+  }
 };
 
-const getProducerInfo = async (producerId) => {
-  const response = await axios.get(
-    `http://127.0.0.1:8000/producers_user?producers=${producerId}`
-  );
-  return response.data;
+const getProducerInfo = async (producerId: number): Promise<any> => {
+  try {
+    const response = await axios.get(
+      `http://127.0.0.1:8000/producers_user?producers=${producerId}`
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
 };
 
-const getAddressId = async (userId) => {
-  const response = await axios.get(
-    `http://127.0.0.1:8000/adresses_types_by_user/${userId}`
-  );
-  return response.data[0].Id_Users_adresses;
+const getAddressId = async (userId: number): Promise<number> => {
+  try {
+    const response = await axios.get(
+      `http://127.0.0.1:8000/adresses_types_by_user/${userId}`
+    );
+    return response.data.Id_Users_adresses;
+  } catch (error) {
+    throw error;
+  }
 };
 
-const fetchProducerAddress = async (addressId) => {
-  const response = await axios.get(
-    `http://127.0.0.1:8000/adresse_of_user?adresse_id=${addressId}`
-  );
-  const producerAddressData = response.data;
-
-  deliveryForm.value.address = producerAddressData.Adresse;
-  deliveryForm.value.phone = producerAddressData.Phone;
-  deliveryForm.value.postalCode = producerAddressData.code_postal;
-  deliveryForm.value.city = producerAddressData.city;
-  producerAddress.value = producerAddressData.Adresse;
+const fetchProducerAddress = async (addressId: number): Promise<void> => {
+  try {
+    const response = await axios.get(
+      `http://127.0.0.1:8000/adresse_of_user?adresse_id=${addressId}`
+    );
+    const producerAddressData = response.data[0];
+    
+    deliveryForm.value.address = producerAddressData.Adresse;
+    deliveryForm.value.phone = producerAddressData.Phone;
+    deliveryForm.value.postalCode = producerAddressData.code_postal;
+    deliveryForm.value.city = producerAddressData.city;
+    producerAddress.value = producerAddressData;
+    
+  } catch (error) {
+  }
 };
 
-const validatePayment = () => {
+const validatePayment = async (): Promise<void> => {
   const orderId = localStorage.getItem("orderId");
-  let preferenceShip = deliveryInfo.value.homeDelivery
-    ? userAddress.value
-    : producerAddress.value;
+  const token = localStorage.getItem("authToken");
 
-  router.push({
-    path: "/ValidateCart",
-    query: { orderId, preferenceShip },
-  });
+  if (!orderId || !token) {
+    return;
+  }
+
+  try {
+    const userResponse = await axios.get("http://127.0.0.1:8000/users_by_token", {
+      params: { token },
+    });
+    const userId = userResponse.data.Id_Users;
+
+    const customerResponse = await axios.get(`http://127.0.0.1:8000/customers_by_id`, {
+      params: { customers: userId },
+    });
+    const idCasual = customerResponse.data.Id_Casual;
+
+    let preferenceShip = deliveryInfo.value.homeDelivery
+      ? userAddress.value
+      : producerAddress.value.Adresse;
+
+    const orderData = {
+      Command_Date: new Date().getDate,
+      Status: false,
+      Preference_Ship: preferenceShip,
+      Ship_Date: null,
+      Id_Casual: idCasual,
+    };
+
+    await axios.put(`http://127.0.0.1:8000/orders/${orderId}`, orderData);
+    router.push({
+      path: "/ValidateCart",
+      query: { orderId, preferenceShip },
+    });
+  } catch (error) {
+  }
 };
 
-onMounted(() => {
+onMounted((): void => {
   fetchPersonalInfo();
   fetchCartProducts();
 });
@@ -481,5 +570,18 @@ onMounted(() => {
 
 .text-center {
   text-align: center;
+}
+
+html, body, #app, .container, .mt-4 {
+  height: 100%;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+}
+
+.mt-4 {
+  flex: 1;
 }
 </style>

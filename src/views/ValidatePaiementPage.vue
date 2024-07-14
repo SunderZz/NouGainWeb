@@ -15,12 +15,20 @@ import Footer from "../components/Homepage/Footer.vue";
 </script>
 <style scoped>
 .home-container {
-  position: relative;
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
 .content-container {
+  flex: 1;
   display: flex;
   flex-direction: column;
+}
+
+.footer {
+  background-color: red;
+  color: white;
+  text-align: center;
 }
 </style>

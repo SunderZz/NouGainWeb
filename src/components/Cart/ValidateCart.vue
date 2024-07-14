@@ -59,21 +59,35 @@ import { useRoute, useRouter } from "vue-router";
 import axios from "axios";
 import { MDBContainer, MDBRow, MDBCol, MDBInput, MDBBtn } from "mdb-vue-ui-kit";
 
+interface Product {
+  Id_Product: number;
+  Name: string;
+  Description: string;
+  Price_ht: number;
+  image: string;
+  quantity: number;
+}
+
+interface PaymentInfo {
+  cardNumber: string;
+  expiryDate: string;
+  cvc: string;
+}
+
 const route = useRoute();
 const router = useRouter();
 
-const products = ref([]);
+const products = ref<Product[]>([]);
 
-const paymentInfo = ref({
+const paymentInfo = ref<PaymentInfo>({
   cardNumber: "",
   expiryDate: "",
   cvc: "",
 });
 
-const fetchCartProducts = async () => {
-  const orderId = route.query.orderId;
+const fetchCartProducts = async (): Promise<void> => {
+  const orderId = route.query.orderId as string;
   if (!orderId) {
-    console.error("OrderId non trouvé dans les paramètres de la route");
     return;
   }
 
@@ -85,7 +99,7 @@ const fetchCartProducts = async () => {
       lineItems = [lineItems];
     }
 
-    const productRequests = lineItems.map(async (item) => {
+    const productRequests = lineItems.map(async (item: any) => {
       const productResponse = await axios.get(
         `http://127.0.0.1:8000/products_by_id/?id=${item.Id_Product}`
       );
@@ -94,19 +108,14 @@ const fetchCartProducts = async () => {
 
     products.value = await Promise.all(productRequests);
   } catch (error) {
-    console.error(
-      "Erreur lors de la récupération des produits du panier:",
-      error
-    );
   }
 };
 
-const processPayment = async () => {
-  const orderId = route.query.orderId;
+const processPayment = async (): Promise<void> => {
+  const orderId = route.query.orderId as string;
   const token = localStorage.getItem("authToken");
 
   if (!orderId || !token) {
-    console.error("OrderId ou token non trouvé");
     return;
   }
 
@@ -123,6 +132,20 @@ const processPayment = async () => {
     );
     const customerId = customerResponse.data.Id_Casual;
 
+    const orderResponse = await axios.get(
+      `http://127.0.0.1:8000/orders_by_id/?id_orders=${orderId}`
+    );
+    const orderData = orderResponse.data;
+
+    const today = new Date();
+    const randomDays = Math.floor(Math.random() * 5) + 1;
+    const shipDate = new Date(today);
+    shipDate.setDate(today.getDate() + randomDays);
+
+    orderData.Ship_Date = shipDate.toISOString().split("T")[0];
+
+    await axios.put(`http://127.0.0.1:8000/orders/${orderId}`, orderData);
+
     await axios.put(`http://127.0.0.1:8000/valid_order`, null, {
       params: {
         order: orderId,
@@ -135,7 +158,6 @@ const processPayment = async () => {
       query: { orderId },
     });
   } catch (error) {
-    console.error("Erreur lors de la validation du paiement:", error);
   }
 };
 
