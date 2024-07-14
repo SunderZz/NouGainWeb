@@ -9,10 +9,10 @@
           </button>
           <div v-show="dropdown1" class="dropdown-menu">
             <button class="dropdown-item" @click="sortProducts('priceAsc')">
-              Prix croissant
+              Prix &#x279a;
             </button>
             <button class="dropdown-item" @click="sortProducts('priceDesc')">
-              Prix décroissant
+              Prix &#x2798;
             </button>
             <button class="dropdown-item" @click="sortProducts('promotion')">
               Promotion
@@ -35,7 +35,7 @@
             <MDBCheckbox
               :label="option.label"
               v-model="option.checked"
-              @change="filterProducts"
+              @change="selectSeason(option)"
             />
           </div>
         </div>
@@ -97,6 +97,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import axios from "axios";
 import {
   MDBContainer,
@@ -112,36 +113,58 @@ import {
 } from "mdb-vue-ui-kit";
 import { useStore } from "vuex";
 
+interface FilterOption {
+  label: string;
+  id: number;
+  checked: boolean;
+}
+
+interface Filter {
+  title: string;
+  options: FilterOption[];
+}
+
+interface Product {
+  Id_Product: number;
+  Name: string;
+  Description: string;
+  Price_ht: number;
+  quantity: number;
+  imageUrl: string;
+  Discount?: number;
+}
+
 const store = useStore();
+const router = useRouter();
 
-const dropdown1 = ref(false);
+const dropdown1 = ref<boolean>(false);
 
-const toggleDropdown = () => {
+const toggleDropdown = (): void => {
   dropdown1.value = !dropdown1.value;
 };
 
-const filters = ref([
+const filters = ref<Filter[]>([
   {
     title: "Saison",
-    options: [],
+    options: [] as FilterOption[],
   },
 ]);
 
-const products = ref([]);
-const filteredProducts = ref([]);
-const selectedProducts = ref(new Set());
+const products = ref<Product[]>([]);
+const filteredProducts = ref<Product[]>([]);
+const selectedProducts = ref<Set<string>>(new Set());
 const defaultImage = "https://via.placeholder.com/300";
 
-const fetchProducts = async () => {
+const fetchProducts = async (): Promise<void> => {
   await store.dispatch("fetchProducts");
-  products.value = store.state.products;
+  products.value = store.state.products as Product[];
   filteredProducts.value = products.value;
 };
 
-const fetchFilters = async () => {
+const fetchFilters = async (): Promise<void> => {
   try {
     const seasonResponse = await axios.get("http://127.0.0.1:8000/seasons");
-    filters.value[0].options = seasonResponse.data.map((season) => ({
+    filters.value[0].options = seasonResponse.data.map((season: any) => ({
       label: season.Name,
       id: season.Id_Season,
       checked: false,
@@ -156,14 +179,19 @@ onMounted(() => {
   fetchFilters();
 });
 
-const incrementQuantity = async (product) => {
+const incrementQuantity = async (product: Product): Promise<void> => {
+  if (!isUserLoggedIn()) {
+    router.push("/Login");
+    return;
+  }
+
   if (product.quantity === 0) {
     selectedProducts.value.add(product.Name);
   }
   product.quantity++;
   localStorage.setItem(
     `product_${product.Id_Product}_quantity`,
-    product.quantity
+    product.quantity.toString()
   );
 
   await addOrUpdateCart(product.Id_Product, product.quantity);
@@ -175,12 +203,17 @@ const incrementQuantity = async (product) => {
   });
 };
 
-const decrementQuantity = async (product, index) => {
+const decrementQuantity = async (product: Product, index: number): Promise<void> => {
+  if (!isUserLoggedIn()) {
+    router.push("/Login");
+    return;
+  }
+
   if (product.quantity > 0) {
     product.quantity--;
     localStorage.setItem(
       `product_${product.Id_Product}_quantity`,
-      product.quantity
+      product.quantity.toString()
     );
 
     await addOrUpdateCart(product.Id_Product, product.quantity);
@@ -205,16 +238,14 @@ const decrementQuantity = async (product, index) => {
   }
 };
 
-const removeProduct = async (productId, index) => {
+const removeProduct = async (productId: number): Promise<void> => {
   const orderId = localStorage.getItem("orderId");
   if (!orderId) {
-    console.error("OrderId non trouvé dans le localStorage");
     return;
   }
 
   try {
     await axios.delete(`http://127.0.0.1:8000/linede/${orderId}/${productId}`);
-    // Ne pas supprimer le produit de products.value, juste mettre à jour la quantité dans le localStorage et le store
     localStorage.removeItem(`product_${productId}_quantity`);
     store.commit("DECREMENT_CART_ITEM_COUNT");
   } catch (error) {
@@ -222,11 +253,11 @@ const removeProduct = async (productId, index) => {
   }
 };
 
-const emitSelectedProducts = () => {
+const emitSelectedProducts = (): void => {
   const selectedCount = selectedProducts.value.size;
 };
 
-const sortProducts = (criteria: string) => {
+const sortProducts = (criteria: string): void => {
   switch (criteria) {
     case "priceAsc":
       filteredProducts.value.sort((a, b) => a.Price_ht - b.Price_ht);
@@ -242,7 +273,7 @@ const sortProducts = (criteria: string) => {
   }
 };
 
-const selectSeason = (option) => {
+const selectSeason = (option: FilterOption): void => {
   filters.value[0].options.forEach((opt) => {
     if (opt !== option) opt.checked = false;
   });
@@ -252,7 +283,7 @@ const selectSeason = (option) => {
   filterProducts();
 };
 
-const filterProducts = async () => {
+const filterProducts = async (): Promise<void> => {
   const activeFilters = filters.value.flatMap((filter) =>
     filter.options.filter((option) => option.checked)
   );
@@ -273,7 +304,7 @@ const filterProducts = async () => {
     const seasonProducts = response.data;
 
     filteredProducts.value = products.value.filter((product) => {
-      return seasonProducts.some((sp) => sp.Id_Product === product.Id_Product);
+      return seasonProducts.some((sp: any) => sp.Id_Product === product.Id_Product);
     });
   } catch (error) {
     console.error(
@@ -283,10 +314,9 @@ const filterProducts = async () => {
   }
 };
 
-const getUserFromToken = async () => {
+const getUserFromToken = async (): Promise<any> => {
   const token = localStorage.getItem("authToken");
   if (!token) {
-    console.error("Token non trouvé");
     return null;
   }
 
@@ -301,7 +331,7 @@ const getUserFromToken = async () => {
   }
 };
 
-const getCustomerById = async (customerId) => {
+const getCustomerById = async (customerId: number): Promise<any> => {
   try {
     const response = await axios.get(
       `http://127.0.0.1:8000/customers_by_id?customers=${customerId}`
@@ -313,17 +343,15 @@ const getCustomerById = async (customerId) => {
   }
 };
 
-const addOrUpdateCart = async (productId, quantity) => {
+const addOrUpdateCart = async (productId: number, quantity: number): Promise<void> => {
   const user = await getUserFromToken();
   if (!user) {
-    console.error("Utilisateur non connecté");
     return;
   }
 
   const customerId = user.Id_Users;
   const customer = await getCustomerById(customerId);
   if (!customer) {
-    console.error("Client non trouvé");
     return;
   }
 
@@ -373,7 +401,7 @@ const addOrUpdateCart = async (productId, quantity) => {
   }
 };
 
-const checkExistingLine = async (orderId, productId) => {
+const checkExistingLine = async (orderId: string, productId: number): Promise<any> => {
   try {
     const response = await axios.get(`http://127.0.0.1:8000/linede/${orderId}`);
     const data = response.data;
@@ -391,6 +419,11 @@ const checkExistingLine = async (orderId, productId) => {
     );
     return null;
   }
+};
+
+const isUserLoggedIn = (): boolean => {
+  const token = localStorage.getItem("authToken");
+  return !!token;
 };
 
 watch(
@@ -429,6 +462,7 @@ watch(
   min-width: 160px;
   box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
   z-index: 1;
+  right: 0;
 }
 .dropdown-menu .dropdown-item {
   color: black;

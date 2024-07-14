@@ -4,14 +4,14 @@
       <section class="mb-4">
         <a
           class="btn btn-link btn-floating btn-lg text-dark m-1"
-          href="#aRemplir"
+          href="www.linkedin.com/in/samuel-gilles-59bab01ba"
           role="button"
           v-mdb-ripple="{ color: 'dark' }"
           ><MDBIcon iconStyle="fab" icon="linkedin"></MDBIcon
         ></a>
         <a
           class="btn btn-link btn-floating btn-lg text-dark m-1"
-          href="#aRemplir"
+          href="https://github.com/SunderZz"
           role="button"
           v-mdb-ripple="{ color: 'dark' }"
           ><MDBIcon iconStyle="fab" icon="github"></MDBIcon
