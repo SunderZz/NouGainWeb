@@ -120,7 +120,18 @@ import {
 } from "mdb-vue-ui-kit";
 import axios from "axios";
 
-const accountInfo = ref({
+interface AccountInfo {
+  firstName: string;
+  lastName: string;
+  email: string;
+  isFarmer: boolean;
+  password: string;
+  confirmPassword: string;
+  document: File | null;
+  summary: string | null;
+}
+
+const accountInfo = ref<AccountInfo>({
   firstName: "",
   lastName: "",
   email: "",
@@ -131,17 +142,16 @@ const accountInfo = ref({
   summary: null,
 });
 
-const onDocumentUpload = (event: Event) => {
-  const file = (event.target as HTMLInputElement).files?.[0];
+const onDocumentUpload = (event: Event): void => {
+  const file = (event.target as HTMLInputElement).files?.[0] || null;
   if (file) {
     accountInfo.value.document = file;
-    console.log("Document uploaded:", file.name);
   }
 };
 
 const router = useRouter();
 
-const createAccount = async () => {
+const createAccount = async (): Promise<void> => {
   if (accountInfo.value.password !== accountInfo.value.confirmPassword) {
     alert("Les mots de passe ne correspondent pas.");
     return;
@@ -179,20 +189,18 @@ const createAccount = async () => {
         },
       }
     );
-    console.log("Compte créé avec succès:", response.data);
 
-    // Déclencher la modal
     const modalElement = document.getElementById("successModal");
-    const modalInstance = new mdb.Modal(modalElement);
-    modalInstance.show();
+    if (modalElement) {
+      const modalInstance = new (window as any).mdb.Modal(modalElement);
+      modalInstance.show();
 
-    // Rediriger après 5 secondes
-    setTimeout(() => {
-      modalInstance.hide();
-      router.push("/");
-    }, 5000);
+      setTimeout(() => {
+        modalInstance.hide();
+        router.push("/");
+      }, 5000);
+    }
   } catch (error) {
-    console.error("Erreur lors de la création du compte:", error);
   }
 };
 </script>
