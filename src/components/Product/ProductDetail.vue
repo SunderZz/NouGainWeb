@@ -126,7 +126,6 @@ const fetchProduct = async (productId: number) => {
     await fetchProducerName(productId);
     await fetchComments(productId);
   } catch (error) {
-    console.error("Erreur lors de la récupération du produit:", error);
   }
 };
 
@@ -147,7 +146,6 @@ const fetchComments = async (productId: number) => {
     comments.value = response.data;
     calculateAverageRating();
   } catch (error) {
-    console.error("Erreur lors de la récupération des commentaires:", error);
   }
 };
 
@@ -215,7 +213,6 @@ const removeProduct = async (productId: number) => {
     localStorage.removeItem(`product_${productId}_quantity`);
     store.commit("DECREMENT_CART_ITEM_COUNT");
   } catch (error) {
-    console.error("Erreur lors de la suppression du produit du panier:", error);
   }
 };
 
@@ -233,7 +230,6 @@ const getUserFromToken = async (): Promise<any> => {
     const response = await axios.get(`http://127.0.0.1:8000/users_by_token?token=${token}`);
     return response.data;
   } catch (error) {
-    console.error("Erreur lors de la récupération de l'utilisateur:", error);
     return null;
   }
 };
@@ -243,7 +239,6 @@ const getCustomerById = async (customerId: number): Promise<any> => {
     const response = await axios.get(`http://127.0.0.1:8000/customers_by_id?customers=${customerId}`);
     return response.data;
   } catch (error) {
-    console.error("Erreur lors de la récupération du client:", error);
     return null;
   }
 };
@@ -287,7 +282,6 @@ const addOrUpdateCart = async (productId: number, quantity: number) => {
         qte: quantity,
       });
     } catch (error) {
-      console.error("Erreur lors de la mise à jour du produit dans le panier:", error);
     }
   } else {
     try {
@@ -297,7 +291,6 @@ const addOrUpdateCart = async (productId: number, quantity: number) => {
         qte: quantity,
       });
     } catch (error) {
-      console.error("Erreur lors de l'ajout du produit au panier:", error);
     }
   }
 };
@@ -314,7 +307,6 @@ const checkExistingLine = async (orderId: number, productId: number): Promise<an
       return null;
     }
   } catch (error) {
-    console.error("Erreur lors de la vérification de l'existence de la ligne:", error);
     return null;
   }
 };
@@ -343,7 +335,6 @@ const submitComment = async () => {
     await axios.post(`http://127.0.0.1:8000/given/?id_customer=${customerId}&product=${product.value.Id_Product}`, payload);
     location.reload();
   } catch (error) {
-    console.error("Erreur lors de la soumission du commentaire:", error);
   }
 };
 
