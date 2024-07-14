@@ -52,7 +52,6 @@
       </MDBCol>
 
       <MDBCol v-if="products.length > 0" md="5">
-        <!-- Informations personnelles -->
         <div class="mb-4">
           <h3>Informations personnelles</h3>
           <MDBInput
@@ -78,7 +77,6 @@
           />
         </div>
 
-        <!-- Informations de livraison -->
         <div>
           <h3>Informations de livraison</h3>
           <MDBCheckbox
@@ -89,13 +87,12 @@
           />
           <MDBCheckbox
             v-model="deliveryInfo.relayPoint"
-            label="Livraison en point relais"
+            label="Récuperer chez le producteur"
             class="mb-3"
             @change="toggleDeliveryMethod('relay')"
             :disabled="products.length > 1"
           />
 
-          <!-- Formulaire de livraison à domicile -->
           <div v-if="deliveryInfo.homeDelivery">
             <MDBInput
               v-model="deliveryForm.address"

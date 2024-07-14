@@ -11,18 +11,16 @@
           <div>
             <h2>{{ product.Name }}</h2>
             <p>{{ product.Description }}</p>
+            <p>
+              <strong>Producteur :</strong>
+              <router-link :to="'/ListAgriculteur/' + producerId">{{ producer }}</router-link>
+            </p>
           </div>
-          <div class="d-flex align-items-center">
-            <div class="me-auto">
-              <MDBBtn
-                v-if="product.quantity > 0"
-                @click="decrementQuantity"
-                color="danger"
-                >-</MDBBtn
-              >
-              <span v-if="product.quantity > 0" class="mx-2">{{
-                product.quantity
-              }}</span>
+          <div class="d-flex flex-column">
+            <p>Ajouter au panier :</p>
+            <div class="d-flex align-items-center">
+              <MDBBtn v-if="product.quantity > 0" @click="decrementQuantity" color="danger">-</MDBBtn>
+              <span v-if="product.quantity > 0" class="mx-2">{{ product.quantity }}</span>
               <MDBBtn @click="incrementQuantity" color="primary">+</MDBBtn>
             </div>
           </div>
@@ -32,87 +30,142 @@
 
     <MDBRow class="mb-4">
       <MDBCol>
-        <h2>{{ product.Price_ht }} €</h2>
+        <h2>{{ product.price }} €</h2>
         <p>{{ product.Description }}</p>
       </MDBCol>
     </MDBRow>
 
     <MDBRow class="flex-grow-1">
       <MDBCol>
-        <h2>Avis</h2>
-        <div class="star-rating">
-          <span v-for="star in 5" :key="star" class="star">&#9733;</span>
-        </div>
+        <h2>Avis (Note globale : {{ averageRating }})</h2>
         <ul>
           <li v-for="(comment, index) in comments" :key="index">
-            {{ comment }}
+            <strong>{{ comment.Title }}</strong> - <small class="text-muted">{{ comment.Notice_date }}</small>
+            <p>{{ comment.Notice }} <span>({{ comment.Note }}/10)</span></p>
           </li>
         </ul>
+        <MDBBtn @click="toggleCommentForm" color="primary">Poster un commentaire</MDBBtn>
+        <form v-if="showCommentForm" @submit.prevent="submitComment" class="mt-3">
+          <MDBInput v-model="newComment.Title" label="Titre" type="text" class="mb-3" required />
+          <MDBInput v-model="newComment.Notice" label="Commentaire" type="textarea" class="mb-3" required />
+          <MDBInput v-model="newComment.Note" label="Note (1-10)" type="number" min="1" max="10" class="mb-3" required />
+          <MDBBtn type="submit" color="success">Envoyer</MDBBtn>
+        </form>
       </MDBCol>
     </MDBRow>
   </MDBContainer>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from "vue";
+import { ref, watch, onMounted, onBeforeMount } from "vue";
 import axios from "axios";
-import { MDBContainer, MDBRow, MDBCol, MDBCard, MDBBtn } from "mdb-vue-ui-kit";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
+import { MDBContainer, MDBRow, MDBCol, MDBCard, MDBBtn, MDBInput } from "mdb-vue-ui-kit";
+
+interface Product {
+  Name: string;
+  Description: string;
+  image: string;
+  quantity: number;
+  price: number;
+  Id_Product: number;
+}
+
+interface Comment {
+  Title: string;
+  Notice: string;
+  Notice_date: string;
+  Note: number;
+}
 
 const route = useRoute();
+const router = useRouter();
 const store = useStore();
 
-const product = ref({
-  title: "",
-  description: "",
+const product = ref<Product>({
+  Name: "",
+  Description: "",
   image: "",
   quantity: 0,
   price: 0,
   Id_Product: 0,
 });
 
-const comments = ref([]);
-const selectedProducts = ref(new Set());
+const producer = ref<string>("");
+const producerId = ref<number | null>(null);
+const comments = ref<Comment[]>([]);
+const selectedProducts = ref<Set<string>>(new Set());
+const averageRating = ref<number>(0);
+const showCommentForm = ref<boolean>(false);
 
-const fetchProduct = async () => {
+const newComment = ref<Comment>({
+  Title: "",
+  Notice: "",
+  Notice_date: new Date().toISOString().split("T")[0],
+  Note: 1,
+});
+
+const fetchProduct = async (productId: number) => {
   try {
-    const productId = parseInt(route.params.id, 10);
     const storedProduct = store.getters.getProductById(productId);
     if (storedProduct) {
       product.value = storedProduct;
     } else {
-      const response = await axios.get(
-        `http://127.0.0.1:8000/products_by_id/?id=${route.params.id}`
-      );
+      const response = await axios.get(`http://127.0.0.1:8000/products_by_id/?id=${productId}`);
       const data = response.data;
       product.value = {
-        title: data.Name,
-        description: data.Description,
+        Name: data.Name,
+        Description: data.Description,
         image: data.imageUrl || "https://placehold.co/600x400",
         quantity: 0,
         price: data.Price_ht,
         Id_Product: data.Id_Product,
       };
     }
+    await fetchProducerName(productId);
+    await fetchComments(productId);
   } catch (error) {
     console.error("Erreur lors de la récupération du produit:", error);
   }
 };
 
-onMounted(() => {
-  fetchProduct();
-});
+const fetchProducerName = async (productId: number): Promise<void> => {
+  try {
+    const giveResponse = await axios.get(`http://127.0.0.1:8000/give/${productId}`);
+    producerId.value = giveResponse.data.Id_Producers;
+    const userResponse = await axios.get(`http://127.0.0.1:8000/user_by_producer?producer_id=${producerId.value}`);
+    producer.value = `${userResponse.data.F_Name} ${userResponse.data.Name}`;
+  } catch (error) {
+    producer.value = "Inconnu";
+  }
+};
+
+const fetchComments = async (productId: number) => {
+  try {
+    const response = await axios.get(`http://127.0.0.1:8000/get_notice_by_id?product=${productId}`);
+    comments.value = response.data;
+    calculateAverageRating();
+  } catch (error) {
+    console.error("Erreur lors de la récupération des commentaires:", error);
+  }
+};
+
+const calculateAverageRating = () => {
+  if (comments.value.length === 0) {
+    averageRating.value = 0;
+    return;
+  }
+  const total = comments.value.reduce((sum, comment) => sum + comment.Note, 0);
+  averageRating.value = parseFloat((total / comments.value.length).toFixed(1));
+};
 
 const incrementQuantity = async () => {
   if (product.value.quantity === 0) {
-    selectedProducts.value.add(product.value.title);
+    selectedProducts.value.add(product.value.Name);
   }
   product.value.quantity++;
-  localStorage.setItem(
-    `product_${product.value.Id_Product}_quantity`,
-    product.value.quantity
-  );
+  localStorage.setItem(`product_${product.value.Id_Product}_quantity`, product.value.quantity.toString());
 
   await addOrUpdateCart(product.value.Id_Product, product.value.quantity);
 
@@ -126,10 +179,7 @@ const incrementQuantity = async () => {
 const decrementQuantity = async () => {
   if (product.value.quantity > 0) {
     product.value.quantity--;
-    localStorage.setItem(
-      `product_${product.value.Id_Product}_quantity`,
-      product.value.quantity
-    );
+    localStorage.setItem(`product_${product.value.Id_Product}_quantity`, product.value.quantity.toString());
 
     await addOrUpdateCart(product.value.Id_Product, product.value.quantity);
 
@@ -149,22 +199,21 @@ const decrementQuantity = async () => {
     });
 
     if (product.value.quantity === 0) {
-      selectedProducts.value.delete(product.value.title);
+      selectedProducts.value.delete(product.value.Name);
     }
   }
 };
 
-const removeProduct = async (productId) => {
+const removeProduct = async (productId: number) => {
   const orderId = localStorage.getItem("orderId");
   if (!orderId) {
-    console.error("OrderId non trouvé dans le localStorage");
     return;
   }
 
   try {
     await axios.delete(`http://127.0.0.1:8000/linede/${orderId}/${productId}`);
     localStorage.removeItem(`product_${productId}_quantity`);
-    store.commit("DECREMENT_CART_ITEM_COUNT"); 
+    store.commit("DECREMENT_CART_ITEM_COUNT");
   } catch (error) {
     console.error("Erreur lors de la suppression du produit du panier:", error);
   }
@@ -174,17 +223,14 @@ const emitSelectedProducts = () => {
   const selectedCount = selectedProducts.value.size;
 };
 
-const getUserFromToken = async () => {
+const getUserFromToken = async (): Promise<any> => {
   const token = localStorage.getItem("authToken");
   if (!token) {
-    console.error("Token non trouvé");
     return null;
   }
 
   try {
-    const response = await axios.get(
-      `http://127.0.0.1:8000/users_by_token?token=${token}`
-    );
+    const response = await axios.get(`http://127.0.0.1:8000/users_by_token?token=${token}`);
     return response.data;
   } catch (error) {
     console.error("Erreur lors de la récupération de l'utilisateur:", error);
@@ -192,11 +238,9 @@ const getUserFromToken = async () => {
   }
 };
 
-const getCustomerById = async (customerId) => {
+const getCustomerById = async (customerId: number): Promise<any> => {
   try {
-    const response = await axios.get(
-      `http://127.0.0.1:8000/customers_by_id?customers=${customerId}`
-    );
+    const response = await axios.get(`http://127.0.0.1:8000/customers_by_id?customers=${customerId}`);
     return response.data;
   } catch (error) {
     console.error("Erreur lors de la récupération du client:", error);
@@ -204,17 +248,16 @@ const getCustomerById = async (customerId) => {
   }
 };
 
-const addOrUpdateCart = async (productId, quantity) => {
+const addOrUpdateCart = async (productId: number, quantity: number) => {
   const user = await getUserFromToken();
   if (!user) {
-    console.error("Utilisateur non connecté");
+    router.push("/Login");
     return;
   }
 
   const customerId = user.Id_Users;
   const customer = await getCustomerById(customerId);
   if (!customer) {
-    console.error("Client non trouvé");
     return;
   }
 
@@ -231,7 +274,6 @@ const addOrUpdateCart = async (productId, quantity) => {
       orderId = response.data.id;
       localStorage.setItem("orderId", orderId);
     } catch (error) {
-      console.error("Erreur lors de la création de la commande:", error);
       return;
     }
   }
@@ -245,10 +287,7 @@ const addOrUpdateCart = async (productId, quantity) => {
         qte: quantity,
       });
     } catch (error) {
-      console.error(
-        "Erreur lors de la mise à jour du produit dans le panier:",
-        error
-      );
+      console.error("Erreur lors de la mise à jour du produit dans le panier:", error);
     }
   } else {
     try {
@@ -263,33 +302,60 @@ const addOrUpdateCart = async (productId, quantity) => {
   }
 };
 
-const checkExistingLine = async (orderId, productId) => {
+const checkExistingLine = async (orderId: number, productId: number): Promise<any> => {
   try {
     const response = await axios.get(`http://127.0.0.1:8000/linede/${orderId}`);
     const data = response.data;
     if (Array.isArray(data)) {
-      return data.find((line) => line.Id_Product === productId) || null;
+      return data.find((line: any) => line.Id_Product === productId) || null;
     } else if (data && data.Id_Product === productId) {
       return data;
     } else {
       return null;
     }
   } catch (error) {
-    console.error(
-      "Erreur lors de la vérification de l'existence de la ligne:",
-      error
-    );
+    console.error("Erreur lors de la vérification de l'existence de la ligne:", error);
     return null;
   }
 };
 
-watch(
-  product,
-  () => {
-    emitSelectedProducts();
-  },
-  { deep: true }
-);
+const toggleCommentForm = () => {
+  showCommentForm.value = !showCommentForm.value;
+};
+
+const submitComment = async () => {
+  const user = await getUserFromToken();
+  if (!user) {
+    router.push("/Login");
+    return;
+  }
+
+  const customerId = user.Id_Users;
+
+  const payload = {
+    Title: newComment.value.Title,
+    Notice: newComment.value.Notice,
+    Notice_date: new Date().toISOString().split("T")[0],
+    Note: newComment.value.Note,
+  };
+
+  try {
+    await axios.post(`http://127.0.0.1:8000/given/?id_customer=${customerId}&product=${product.value.Id_Product}`, payload);
+    location.reload();
+  } catch (error) {
+    console.error("Erreur lors de la soumission du commentaire:", error);
+  }
+};
+
+watch(route, () => {
+  const productId = parseInt(route.params.id, 10);
+  fetchProduct(productId);
+});
+
+onMounted(() => {
+  const productId = parseInt(route.params.id, 10);
+  fetchProduct(productId);
+});
 </script>
 
 <style scoped>

@@ -75,7 +75,6 @@
       </MDBCol>
     </MDBRow>
 
-    <!-- Modal -->
     <div
       class="modal fade"
       id="successModal"

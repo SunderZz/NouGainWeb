@@ -31,20 +31,32 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 
+interface Product {
+  Id_Product: number;
+  imageUrl: string;
+  Name: string;
+}
+
+interface CarouselItem {
+  id: number;
+  src: string;
+  alt: string;
+}
+
 export default {
   setup() {
-    const items9 = ref([]);
-    const currentIndex = ref(0);
+    const items9 = ref<CarouselItem[]>([]);
+    const currentIndex = ref<number>(0);
     const router = useRouter();
 
     const fetchProducts = async () => {
       try {
-        const response = await axios.get(
+        const response = await axios.get<Product[]>(
           "http://127.0.0.1:8000/products_discount/"
         );
         const products = response.data;
@@ -55,11 +67,11 @@ export default {
           alt: product.Name,
         }));
       } catch (error) {
-        console.error("Erreur lors de la récupération des produits:", error);
+        console.error("Failed to fetch products", error);
       }
     };
 
-    const goToDetail = (id) => {
+    const goToDetail = (id: number) => {
       router.push(`/ProductDetail/${id}`);
     };
 
