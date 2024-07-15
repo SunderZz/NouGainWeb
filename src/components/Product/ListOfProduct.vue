@@ -170,7 +170,6 @@ const fetchFilters = async (): Promise<void> => {
       checked: false,
     }));
   } catch (error) {
-    console.error("Erreur lors de la récupération des filtres:", error);
   }
 };
 
@@ -249,7 +248,6 @@ const removeProduct = async (productId: number): Promise<void> => {
     localStorage.removeItem(`product_${productId}_quantity`);
     store.commit("DECREMENT_CART_ITEM_COUNT");
   } catch (error) {
-    console.error("Erreur lors de la suppression du produit du panier:", error);
   }
 };
 
@@ -307,10 +305,7 @@ const filterProducts = async (): Promise<void> => {
       return seasonProducts.some((sp: any) => sp.Id_Product === product.Id_Product);
     });
   } catch (error) {
-    console.error(
-      "Erreur lors de la récupération des produits par saison:",
-      error
-    );
+
   }
 };
 
@@ -326,7 +321,6 @@ const getUserFromToken = async (): Promise<any> => {
     );
     return response.data;
   } catch (error) {
-    console.error("Erreur lors de la récupération de l'utilisateur:", error);
     return null;
   }
 };
@@ -338,7 +332,6 @@ const getCustomerById = async (customerId: number): Promise<any> => {
     );
     return response.data;
   } catch (error) {
-    console.error("Erreur lors de la récupération du client:", error);
     return null;
   }
 };
@@ -369,7 +362,6 @@ const addOrUpdateCart = async (productId: number, quantity: number): Promise<voi
       orderId = response.data.Id_Orders;
       localStorage.setItem("orderId", orderId);
     } catch (error) {
-      console.error("Erreur lors de la création de la commande:", error);
       return;
     }
   }
@@ -383,10 +375,7 @@ const addOrUpdateCart = async (productId: number, quantity: number): Promise<voi
         qte: quantity,
       });
     } catch (error) {
-      console.error(
-        "Erreur lors de la mise à jour du produit dans le panier:",
-        error
-      );
+
     }
   } else {
     try {
@@ -396,7 +385,6 @@ const addOrUpdateCart = async (productId: number, quantity: number): Promise<voi
         qte: quantity,
       });
     } catch (error) {
-      console.error("Erreur lors de l'ajout du produit au panier:", error);
     }
   }
 };
@@ -413,10 +401,6 @@ const checkExistingLine = async (orderId: string, productId: number): Promise<an
       return null;
     }
   } catch (error) {
-    console.error(
-      "Erreur lors de la vérification de l'existence de la ligne:",
-      error
-    );
     return null;
   }
 };

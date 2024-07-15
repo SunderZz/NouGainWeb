@@ -102,7 +102,7 @@ interface Form {
   firstName: string;
   lastName: string;
   address: string;
-  phone: string;
+  phone: number;
   email: string;
   description: string;
   postalCode: string;
@@ -149,7 +149,7 @@ const form: Ref<Form> = ref({
   firstName: "",
   lastName: "",
   address: "",
-  phone: "",
+  phone: 0,
   email: "",
   description: "",
   postalCode: "",
@@ -227,7 +227,7 @@ const submitForm = async () => {
 
   const addressPayload = new FormData();
   addressPayload.append("Adresse", form.value.address);
-  addressPayload.append("Phone", form.value.phone);
+  addressPayload.append("", form.value.phone);
   addressPayload.append("code_postal", form.value.postalCode);
   addressPayload.append("city", form.value.city);
 
@@ -304,7 +304,7 @@ const resetForm = () => {
     firstName: "",
     lastName: "",
     address: "",
-    phone: "",
+    phone: 0,
     email: "",
     description: "",
     postalCode: "",

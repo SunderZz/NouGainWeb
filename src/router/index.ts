@@ -45,7 +45,12 @@ const routes = [
   {
     path: "/AgriculteurList",
     name: "list_agriculteur",
-    component: () => import("../views/AgriculteurPage.vue"),
+    component: () => import("../views/AgriculteurListPage.vue"),
+  },
+  {
+    path: "/AgriculteurDetail/:id",
+    name: "agriculteur_detail",
+    component: () => import("../views/AgriculteurDetailPage.vue"),
   },
   {
     path: "/Agriculteur",
@@ -153,7 +158,7 @@ const router = createRouter({
   routes,
 });
 
-const isAdmin = async (token) => {
+const isAdmin = async (token: string) => {
   try {
     const userResponse = await axios.get(
       `http://127.0.0.1:8000/users_by_token?token=${token}`
@@ -165,10 +170,7 @@ const isAdmin = async (token) => {
     );
     return adminResponse.status === 200;
   } catch (error) {
-    console.error(
-      "Erreur lors de la vérification de l'utilisateur administrateur:",
-      error
-    );
+
     return false;
   }
 };
@@ -200,7 +202,6 @@ router.beforeEach(async (to, from, next) => {
     next();
   }
 });
-
 
 export default {
   router,

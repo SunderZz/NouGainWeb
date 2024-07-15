@@ -81,7 +81,6 @@ const store = createStore({
           commit("SET_PRODUCTS", products);
         })
         .catch((error) => {
-          console.error("Erreur lors de la récupération des produits:", error);
         });
     },
   },

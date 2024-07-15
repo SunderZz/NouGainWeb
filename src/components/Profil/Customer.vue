@@ -62,7 +62,6 @@ const fetchUserData = async () => {
     customers.value.description = user.Description || "";
     customers.value.image = user.image || "https://mdbootstrap.com/img/new/standard/nature/184.webp";
   } catch (error) {
-    console.error("Failed to fetch user data:", error);
   }
 };
 

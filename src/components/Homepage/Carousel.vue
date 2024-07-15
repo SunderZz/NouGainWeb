@@ -67,7 +67,6 @@ export default {
           alt: product.Name,
         }));
       } catch (error) {
-        console.error("Failed to fetch products", error);
       }
     };
 

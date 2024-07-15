@@ -1,20 +1,17 @@
 <template>
   <MDBContainer fluid class="mt-4">
     <div class="background-image-container position-relative">
-      <a href="#/SettingAgriculteur" class="settings-icon-link" v-if="isProducer">
-        <MDBIcon fas icon="cog" class="settings-icon" />
-      </a>
       <div class="profile-container">
         <MDBCard class="profile-card">
           <img
-            :src="isProducer ? farmer.image : customer.image"
+            :src="farmer.image"
             class="farmer-img mx-auto d-block"
             alt="Profile image"
           />
           <MDBCardBody class="text-center">
-            <MDBCardTitle>{{ isProducer ? farmer.name : customer.name }}</MDBCardTitle>
+            <MDBCardTitle>{{ farmer.name }}</MDBCardTitle>
             <br />
-            <MDBCardText>{{ isProducer ? farmer.description : customer.description }}</MDBCardText>
+            <MDBCardText>{{ farmer.description }}</MDBCardText>
           </MDBCardBody>
         </MDBCard>
       </div>
@@ -22,7 +19,7 @@
 
     <div class="spacer"></div>
 
-    <MDBRow class="mb-4" v-if="isProducer">
+    <MDBRow class="mb-4">
       <MDBCol>
         <div class="scroll-container">
           <div
@@ -72,11 +69,11 @@ import {
   MDBCardBody,
   MDBCardTitle,
   MDBCardText,
-  MDBIcon,
 } from "mdb-vue-ui-kit";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import axios from "axios";
+import { useRoute } from "vue-router";
 
 interface Product {
   Name: string;
@@ -92,12 +89,6 @@ interface Farmer {
   products: Product[];
 }
 
-interface Customer {
-  name: string;
-  description: string;
-  image: string;
-}
-
 interface Address {
   Adresse: string;
   Phone: number;
@@ -107,73 +98,49 @@ interface Address {
   Longitude: number;
 }
 
-const isProducer = ref<boolean>(false);
 const farmer = ref<Farmer>({
   name: "",
   description: "",
   image: "",
   products: [],
 });
-const customer = ref<Customer>({
-  name: "",
-  description: "",
-  image: "",
-});
+
 const addresses = ref<Address[]>([]);
+const route = useRoute();
 
-const fetchUserData = async () => {
-  const token = localStorage.getItem("authToken");
-  if (!token) {
-    return;
-  }
-
+const fetchFarmerData = async (): Promise<void> => {
+  const userId = route.params.id;
   try {
-    const userResponse = await axios.get("http://127.0.0.1:8000/users_by_token", {
-      params: { token },
+    const userResponse = await axios.get(`http://127.0.0.1:8000/users/${userId}/addresses`);
+    addresses.value = userResponse.data;
+    
+    const producerResponse = await axios.get(`http://127.0.0.1:8000/producers_by_user/${userId}`);
+    
+    const producerId = producerResponse.data.Id_Producers;
+    const giveResponse = await axios.get("http://127.0.0.1:8000/give_producers", {
+      params: { give_id: producerId },
     });
 
-    const userId = userResponse.data.Id_Users;
-    
-    const addressResponse = await axios.get(`http://127.0.0.1:8000/users/${userId}/addresses`);
-    addresses.value = addressResponse.data;
-
-    try {
-      const producerResponse = await axios.get(`http://127.0.0.1:8000/producers_by_user/${userId}`);
-      isProducer.value = true;
-      
-      const producerId = producerResponse.data.Id_Producers;
-
-      const giveResponse = await axios.get("http://127.0.0.1:8000/give_producers", {
-        params: { give_id: producerId },
+    const productIds = giveResponse.data.map((give: any) => give.Id_Product);
+    const productDetails = [];
+    for (const productId of productIds) {
+      const productResponse = await axios.get("http://127.0.0.1:8000/products_by_id/", {
+        params: { id: productId },
       });
-
-      const productIds = giveResponse.data.map((give: any) => give.Id_Product);
-
-      const productDetails = [];
-      for (const productId of productIds) {
-        const productResponse = await axios.get("http://127.0.0.1:8000/products_by_id/", {
-          params: { id: productId },
-        });
-        productDetails.push(productResponse.data);
-      }
-
-      farmer.value.name = userResponse.data.Name;
-      farmer.value.description = producerResponse.data.description;
-      farmer.value.image = userResponse.data.image;
-      farmer.value.products = productDetails;
-    } catch (producerError) {
-      isProducer.value = false;
-
-      customer.value.name = userResponse.data.Name || "";
-      customer.value.description = userResponse.data.Description || "";
-      customer.value.image = userResponse.data.image || "https://mdbootstrap.com/img/new/standard/nature/184.webp";
+      productDetails.push(productResponse.data);
     }
+
+    farmer.value.name = producerResponse.data.Name;
+    farmer.value.description = producerResponse.data.description;
+    farmer.value.image = producerResponse.data.image;
+    farmer.value.products = productDetails;
   } catch (error) {
   }
 };
 
-onMounted(() => {
-  fetchUserData().then(() => {
+onMounted((): void => {
+  fetchFarmerData().then((): void => {
+    
     if (addresses.value.length > 0) {
       const coordinates = [addresses.value[0].Latitude, addresses.value[0].Longitude];
       const map = L.map("map").setView(coordinates, 13);
@@ -226,15 +193,6 @@ onMounted(() => {
 
 .farmer-info {
   margin-top: 50px;
-}
-
-.settings-icon {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  font-size: 24px;
-  color: white;
-  cursor: pointer;
 }
 
 .spacer {

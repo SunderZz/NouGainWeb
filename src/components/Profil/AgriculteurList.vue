@@ -1,78 +1,109 @@
 <template>
   <MDBContainer fluid class="mt-4">
-    <MDBRow class="mb-4">
-      <MDBCol>
-        <a
-          v-for="(user, index) in users"
-          :key="index"
-          href="#/ProfilAgriculteur"
-          class="user-card-link"
-        >
-          <div class="user-card d-flex align-items-center mb-4">
-            <img :src="user.photo" alt="User photo" class="user-photo me-3" />
-            <div class="user-info flex-grow-1">
-              <h5 class="mb-1">{{ user.firstName }} {{ user.lastName }}</h5>
-              <p class="mb-1">{{ user.shortDescription }}</p>
-            </div>
-            <ul class="user-objects">
-              <li v-for="(item, idx) in user.objects" :key="idx">{{ item }}</li>
-            </ul>
-          </div>
-        </a>
+    <MDBRow class="mb-4 align-items-center">
+      <MDBCol md="6">
+        <h3>Agriculteurs</h3>
       </MDBCol>
     </MDBRow>
+    <div class="list-container">
+      <MDBRow>
+        <MDBCol
+          v-for="(user, index) in users"
+          :key="index"
+          md="12"
+          class="mb-3"
+        >
+          <MDBCard @click="openFarmer(user.id)" class="cursor-pointer">
+            <MDBCardBody class="d-flex align-items-center">
+              <img :src="user.photo" alt="User photo" class="user-photo me-3" />
+              <div class="user-info flex-grow-1">
+                <h5 class="mb-1">{{ user.firstName }} {{ user.lastName }}</h5>
+                <p class="mb-1">{{ user.shortDescription }}</p>
+              </div>
+              <ul class="user-objects">
+                <li v-for="(item, idx) in user.objects" :key="idx">{{ item }}</li>
+              </ul>
+            </MDBCardBody>
+          </MDBCard>
+        </MDBCol>
+      </MDBRow>
+    </div>
   </MDBContainer>
 </template>
+
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, Ref } from "vue";
+import { useRouter } from "vue-router";
 import axios from "axios";
-import { MDBContainer, MDBRow, MDBCol } from "mdb-vue-ui-kit";
+import { 
+  MDBContainer, 
+  MDBRow, 
+  MDBCol, 
+  MDBCard, 
+  MDBCardBody 
+} from "mdb-vue-ui-kit";
 
-const users = ref([]);
-const defaultImage = "https://via.placeholder.com/150"; 
+interface User {
+  id: number;
+  firstName: string;
+  lastName: string;
+  photo: string;
+  shortDescription: string;
+  objects: string[];
+}
 
-const fetchProducers = async () => {
+interface Producer {
+  id: number;
+  firstName: string;
+  lastName: string;
+  description?: string;
+  objects?: string[];
+}
+
+const users: Ref<User[]> = ref([]);
+const defaultImage = "https://via.placeholder.com/150";
+const router = useRouter();
+
+const fetchProducers = async (): Promise<void> => {
   try {
     const response = await axios.get("http://127.0.0.1:8000/producers/");
-    console.log(response);
-
-    users.value = response.data.map((producer) => ({
+    users.value = response.data.map((producer: Producer) => ({
+      id: producer.Id_Users,
       firstName: producer.firstName,
       lastName: producer.lastName,
-      photo: defaultImage, 
+      photo: defaultImage,
       shortDescription: producer.description || "Description non disponible",
-      objects: producer.objects || [], 
+      objects: producer.objects || [],
     }));
   } catch (error) {
-    console.error("Erreur lors de la récupération des producteurs:", error);
   }
 };
 
-onMounted(() => {
+const openFarmer = (id: number): void => {
+  router.push(`/AgriculteurDetail/${id}`);
+};
+
+onMounted((): void => {
   fetchProducers();
 });
 </script>
-<style scoped>
-.user-card-link {
-  text-decoration: none;
-  color: inherit;
-}
 
-.user-card {
+<style scoped>
+.list-container {
   border: 1px solid #ccc;
   border-radius: 10px;
   padding: 10px;
-  display: flex;
-  align-items: center;
-  transition: transform 0.3s; 
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-.user-card:hover {
-  transform: scale(1.02);
+.cursor-pointer {
+  cursor: pointer;
 }
 
 .user-photo {
-  width: 60px; 
+  width: 60px;
   height: 60px;
   object-fit: cover;
   border-radius: 50%;

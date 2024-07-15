@@ -62,7 +62,6 @@ const fetchRecipeDetails = async () => {
       steps: data.Recipe.split('.').map((item: string) => item.trim()),
     };
   } catch (error) {
-    console.error(error);
   }
 };
 
