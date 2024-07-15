@@ -40,6 +40,7 @@ interface Product {
   Id_Product: number;
   imageUrl: string;
   Name: string;
+  Active: boolean;
 }
 
 interface CarouselItem {
@@ -60,12 +61,14 @@ export default {
           "http://127.0.0.1:8000/products_discount/"
         );
         const products = response.data;
-
-        items9.value = products.map((product) => ({
-          id: product.Id_Product,
-          src: product.imageUrl || "https://placehold.co/600x400",
-          alt: product.Name,
-        }));
+        
+        items9.value = products
+          .filter(product => product.Active)
+          .map((product) => ({
+            id: product.Id_Product,
+            src: product.imageUrl || "https://placehold.co/600x400",
+            alt: product.Name,
+          }));
       } catch (error) {
       }
     };

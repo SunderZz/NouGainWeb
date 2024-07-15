@@ -132,6 +132,7 @@ interface Product {
   quantity: number;
   imageUrl: string;
   Discount?: number;
+  Active: boolean;
 }
 
 const store = useStore();
@@ -157,7 +158,7 @@ const defaultImage = "https://via.placeholder.com/300";
 
 const fetchProducts = async (): Promise<void> => {
   await store.dispatch("fetchProducts");
-  products.value = store.state.products as Product[];
+  products.value = store.state.products.filter((product: Product) => product.Active) as Product[];
   filteredProducts.value = products.value;
 };
 
@@ -305,7 +306,6 @@ const filterProducts = async (): Promise<void> => {
       return seasonProducts.some((sp: any) => sp.Id_Product === product.Id_Product);
     });
   } catch (error) {
-
   }
 };
 
@@ -375,7 +375,6 @@ const addOrUpdateCart = async (productId: number, quantity: number): Promise<voi
         qte: quantity,
       });
     } catch (error) {
-
     }
   } else {
     try {

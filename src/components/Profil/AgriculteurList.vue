@@ -18,10 +18,12 @@
               <img :src="user.photo" alt="User photo" class="user-photo me-3" />
               <div class="user-info flex-grow-1">
                 <h5 class="mb-1">{{ user.firstName }} {{ user.lastName }}</h5>
-                <p class="mb-1">{{ user.shortDescription }}</p>
+                <p class="mb-1">{{ user.description }}</p>
               </div>
               <ul class="user-objects">
-                <li v-for="(item, idx) in user.objects" :key="idx">{{ item }}</li>
+                <li v-for="(item, idx) in user.objects" :key="idx">
+                  {{ item }}
+                </li>
               </ul>
             </MDBCardBody>
           </MDBCard>
@@ -35,12 +37,12 @@
 import { ref, onMounted, Ref } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
-import { 
-  MDBContainer, 
-  MDBRow, 
-  MDBCol, 
-  MDBCard, 
-  MDBCardBody 
+import {
+  MDBContainer,
+  MDBRow,
+  MDBCol,
+  MDBCard,
+  MDBCardBody,
 } from "mdb-vue-ui-kit";
 
 interface User {
@@ -48,16 +50,14 @@ interface User {
   firstName: string;
   lastName: string;
   photo: string;
-  shortDescription: string;
   objects: string[];
+  description: string;
 }
 
 interface Producer {
-  id: number;
-  firstName: string;
-  lastName: string;
-  description?: string;
-  objects?: string[];
+  Id_Users: number;
+  description: string;
+  Id_Producers: number;
 }
 
 const users: Ref<User[]> = ref([]);
@@ -67,14 +67,29 @@ const router = useRouter();
 const fetchProducers = async (): Promise<void> => {
   try {
     const response = await axios.get("http://127.0.0.1:8000/producers/");
-    users.value = response.data.map((producer: Producer) => ({
-      id: producer.Id_Users,
-      firstName: producer.firstName,
-      lastName: producer.lastName,
-      photo: defaultImage,
-      shortDescription: producer.description || "Description non disponible",
-      objects: producer.objects || [],
-    }));
+    const producers = response.data;
+    const activeUsers: User[] = [];
+
+    for (const producer of producers) {
+      const userResponse = await axios.get(
+        `http://127.0.0.1:8000/users/${producer.Id_Users}`
+      );
+
+      const user = userResponse.data;
+
+      if (user.active) {
+        activeUsers.push({
+          id: user.Id_Users,
+          firstName: user.F_Name,
+          lastName: user.Name,
+          photo: defaultImage,
+          description: producer.description || "Description non disponible",
+          objects: [],
+        });
+      }
+    }
+
+    users.value = activeUsers;
   } catch (error) {
   }
 };
