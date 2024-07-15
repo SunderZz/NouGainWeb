@@ -3,7 +3,7 @@
       <div class="content-container">
         <Header />
         <Products />
-        <Footer/>
+        <Footer class="footer"/>
       </div>
     </div>
   </template>

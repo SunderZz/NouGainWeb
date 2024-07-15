@@ -172,9 +172,9 @@ const submitForm = async () => {
       `http://127.0.0.1:8000/adresses_types_by_user/${user.Id_Users}`
     );
     const users_adresses = users_adressesResponse.data;
-
-    if (users_adresses.length > 0) {
-      const addressId = users_adresses[0].Id_Users_adresses;
+    
+    if (users_adresses) {
+      const addressId = users_adresses.Id_Users_adresses;
 
       await axios.put(
         `http://127.0.0.1:8000/users_adresses/${addressId}`,
@@ -212,14 +212,9 @@ const submitForm = async () => {
       );
     }
 
-    console.log("Informations utilisateur mises à jour avec succès.");
     localStorage.clear();
     router.push("/");
   } catch (error) {
-    console.error(
-      "Erreur lors de la mise à jour des informations utilisateur:",
-      error
-    );
   }
 };
 
@@ -236,19 +231,20 @@ const fetchUserData = async () => {
     form.value.firstName = user.F_Name;
     form.value.lastName = user.Name;
     form.value.email = user.Mail;
-
+    
     const addressResponse = await axios.get(
       `http://127.0.0.1:8000/adresses_types_by_user/${user.Id_Users}`
     );
+    
     const adresse_id = addressResponse.data;
-
+    
     const adresseInformations = await axios.get(
-      `http://127.0.0.1:8000/adresse_of_user?adresse_id=${adresse_id[0].Id_Users_adresses}`
+      `http://127.0.0.1:8000/adresse_of_user?adresse_id=${adresse_id.Id_Users_adresses}`
     );
     const userAddress = adresseInformations.data;
 
     const locatedResponse = await axios.get(
-      `http://127.0.0.1:8000/located/${adresse_id[0].Id_Users_adresses}`
+      `http://127.0.0.1:8000/located/${adresse_id.Id_Users_adresses}`
     );
     const located = locatedResponse.data;
 
@@ -263,7 +259,7 @@ const fetchUserData = async () => {
     const got = gotResponse.data;
 
     const cityResponse = await axios.get(
-      `http://127.0.0.1:8000/city_with_id/?city=${got[0].Id_City}`
+      `http://127.0.0.1:8000/city_with_id/?city=${got.Id_City}`
     );
     const city = cityResponse.data;
 
@@ -272,10 +268,6 @@ const fetchUserData = async () => {
     form.value.postalCode = codePostal.code_postal;
     form.value.city = city.Name;
   } catch (error) {
-    console.error(
-      "Erreur lors de la récupération des données utilisateur:",
-      error
-    );
   }
 };
 

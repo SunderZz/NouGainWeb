@@ -1,14 +1,14 @@
 <template>
   <div>
     <Header />
-    <List />
+    <Agriculteur />
     <Footer class="footer" />
   </div>
 </template>
 
 <script setup lang="ts">
 import Header from "../components/Homepage/Header.vue";
-import List from "../components/Profil/AgriculteurList.vue";
+import Agriculteur from "../components/Profil/Agriculteur.vue";
 import Footer from "../components/Homepage/Footer.vue";
 </script>
 <style>

@@ -8,8 +8,7 @@
           </MDBNavbarBrand>
         </div>
         <div
-          class="col-md-6 d-flex justify-content-center align-items-center position-relative"
-          style="padding-right: 50px;"
+          class="col-md-6 d-flex justify-content-center align-items-center"
         >
           <form class="d-flex input-group w-75" @submit.prevent="search">
             <input
@@ -174,9 +173,9 @@ const checkUserProfile = async () => {
 
     try {
       const producerResponse = await axios.get<{ Id_Producers: number }>(
-        `http://127.0.0.1:8000/producers/${userId.value}`
+        `http://127.0.0.1:8000/producers_by_user/${userId.value}`
       );
-
+      
       if (producerResponse.data.Id_Producers) {
         userProfileLink.value = "/ProfilAgriculteur";
       } else {
@@ -234,7 +233,7 @@ onMounted(() => {
 }
 .search-results-container {
   width: 100%;
-  max-width: 600px;
+  max-width: 500px;
   position: absolute;
   top: 100%;
   left: 50%;

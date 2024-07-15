@@ -1,20 +1,20 @@
 <template>
   <MDBContainer fluid class="mt-4">
     <div class="background-image-container position-relative">
-      <a href="#/SettingAgriculteur" class="settings-icon-link">
+      <a href="#/SettingAgriculteur" class="settings-icon-link" v-if="isProducer">
         <MDBIcon fas icon="cog" class="settings-icon" />
       </a>
       <div class="profile-container">
         <MDBCard class="profile-card">
           <img
-            :src="farmer.image"
+            :src="isProducer ? farmer.image : customer.image"
             class="farmer-img mx-auto d-block"
-            alt="Farmer image"
+            alt="Profile image"
           />
           <MDBCardBody class="text-center">
-            <MDBCardTitle>{{ farmer.name }}</MDBCardTitle>
+            <MDBCardTitle>{{ isProducer ? farmer.name : customer.name }}</MDBCardTitle>
             <br />
-            <MDBCardText>{{ farmer.description }}</MDBCardText>
+            <MDBCardText>{{ isProducer ? farmer.description : customer.description }}</MDBCardText>
           </MDBCardBody>
         </MDBCard>
       </div>
@@ -22,7 +22,7 @@
 
     <div class="spacer"></div>
 
-    <MDBRow class="mb-4">
+    <MDBRow class="mb-4" v-if="isProducer">
       <MDBCol>
         <div class="scroll-container">
           <div
@@ -69,103 +69,125 @@ import {
   MDBRow,
   MDBCol,
   MDBCard,
-  MDBBtn,
+  MDBCardBody,
+  MDBCardTitle,
+  MDBCardText,
   MDBIcon,
 } from "mdb-vue-ui-kit";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import axios from "axios";
 
-const farmer = ref({
+interface Product {
+  Name: string;
+  Price_ht: number;
+  Quantity: number;
+  image: string;
+}
+
+interface Farmer {
+  name: string;
+  description: string;
+  image: string;
+  products: Product[];
+}
+
+interface Customer {
+  name: string;
+  description: string;
+  image: string;
+}
+
+interface Address {
+  Adresse: string;
+  Phone: number;
+  Creation: string;
+  Modification: string;
+  Latitude: number;
+  Longitude: number;
+}
+
+const isProducer = ref<boolean>(false);
+const farmer = ref<Farmer>({
   name: "",
   description: "",
   image: "",
   products: [],
 });
-
-const additionalInfo = ref({
-  field1: "",
-  field2: "",
-  field3: "",
-  coordinates: [48.8566, 2.3522],
+const customer = ref<Customer>({
+  name: "",
+  description: "",
+  image: "",
 });
-
-const incrementQuantity = (index: number) => {
-  console.log(`Quantité incrémentée pour le produit à l'index ${index}`);
-};
+const addresses = ref<Address[]>([]);
 
 const fetchUserData = async () => {
   const token = localStorage.getItem("authToken");
   if (!token) {
-    console.error("Token non trouvé dans le local storage");
     return;
   }
 
   try {
-    const userResponse = await axios.get(
-      "http://127.0.0.1:8000/users_by_token",
-      {
-        params: { token },
-      }
-    );
+    const userResponse = await axios.get("http://127.0.0.1:8000/users_by_token", {
+      params: { token },
+    });
 
     const userId = userResponse.data.Id_Users;
-    const producerResponse = await axios.get(
-      `http://127.0.0.1:8000/producers/${userId}`
-    );
+    
+    const addressResponse = await axios.get(`http://127.0.0.1:8000/users/${userId}/addresses`);
+    addresses.value = addressResponse.data;
 
-    const producerId = producerResponse.data.Id_Producers;
+    try {
+      const producerResponse = await axios.get(`http://127.0.0.1:8000/producers_by_user/${userId}`);
+      isProducer.value = true;
 
-    const giveResponse = await axios.get(
-      "http://127.0.0.1:8000/give_producers",
-      {
+      const producerId = producerResponse.data.Id_Producers;
+
+      const giveResponse = await axios.get("http://127.0.0.1:8000/give_producers", {
         params: { give_id: producerId },
-      }
-    );
+      });
 
-    const productIds = giveResponse.data.map((give: any) => give.Id_Product);
+      const productIds = giveResponse.data.map((give: any) => give.Id_Product);
 
-    const productDetails = [];
-    for (const productId of productIds) {
-      const productResponse = await axios.get(
-        "http://127.0.0.1:8000/products_by_id/",
-        {
+      const productDetails = [];
+      for (const productId of productIds) {
+        const productResponse = await axios.get("http://127.0.0.1:8000/products_by_id/", {
           params: { id: productId },
-        }
-      );
+        });
+        productDetails.push(productResponse.data);
+      }
 
-      productDetails.push(productResponse.data);
-    }
+      farmer.value.name = userResponse.data.Name;
+      farmer.value.description = producerResponse.data.description;
+      farmer.value.image = userResponse.data.image;
+      farmer.value.products = productDetails;
+    } catch (producerError) {
+      isProducer.value = false;
 
-    farmer.value.name = userResponse.data.Name;
-    farmer.value.description = producerResponse.data.description;
-    farmer.value.image = userResponse.data.image;
-    farmer.value.products = productDetails;
-
-    additionalInfo.value.field1 = producerResponse.data.field1;
-    additionalInfo.value.field2 = producerResponse.data.field2;
-    additionalInfo.value.field3 = producerResponse.data.field3;
-    if (producerResponse.data.coordinates) {
-      additionalInfo.value.coordinates = producerResponse.data.coordinates;
+      customer.value.name = userResponse.data.Name || "";
+      customer.value.description = userResponse.data.Description || "";
+      customer.value.image = userResponse.data.image || "https://mdbootstrap.com/img/new/standard/nature/184.webp";
     }
   } catch (error) {
-    console.error("Erreur lors de la récupération des données:", error);
   }
 };
 
 onMounted(() => {
-  fetchUserData();
+  fetchUserData().then(() => {
+    if (addresses.value.length > 0) {
+      const coordinates = [addresses.value[0].Latitude, addresses.value[0].Longitude];
+      const map = L.map("map").setView(coordinates, 13);
 
-  const map = L.map("map").setView(additionalInfo.value.coordinates, 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(map);
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap contributors",
-  }).addTo(map);
-
-  L.marker(additionalInfo.value.coordinates)
-    .addTo(map)
-    .bindPopup("Localisation de l'exploitation.")
-    .openPopup();
+      L.marker(coordinates)
+        .addTo(map)
+        .bindPopup("Localisation de l'exploitation.")
+        .openPopup();
+    }
+  });
 });
 </script>
 

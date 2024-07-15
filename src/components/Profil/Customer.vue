@@ -14,21 +14,12 @@
         </MDBCard>
         <div class="text-center mt-3 customer-info">
           <h2>{{ customers.name }}</h2>
-          <p>{{ customers.description }}</p>
         </div>
       </div>
     </div>
 
     <div class="spacer"></div>
 
-    <MDBRow>
-      <MDBCol>
-        <h5>Informations supplémentaires</h5>
-        <div class="d-flex justify-content-between">
-          <div id="map" class="additional-map"></div>
-        </div>
-      </MDBCol>
-    </MDBRow>
   </MDBContainer>
 </template>
 
@@ -43,21 +34,19 @@ import {
   MDBBtn,
   MDBIcon,
 } from "mdb-vue-ui-kit";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
 
-const customers = ref({
+interface Customer {
+  name: string;
+  description: string;
+  image: string;
+}
+
+const customers = ref<Customer>({
   name: "",
   description: "",
   image: "",
 });
 
-const additionalInfo = ref({
-  field1: "",
-  field2: "",
-  field3: "",
-  coordinates: [0, 0],
-});
 
 const fetchUserData = async () => {
   try {
@@ -71,30 +60,14 @@ const fetchUserData = async () => {
 
     customers.value.name = user.Name || "";
     customers.value.description = user.Description || "";
-    customers.value.image =
-      user.image || "https://mdbootstrap.com/img/new/standard/nature/184.webp";
-    additionalInfo.value.coordinates = user.coordinates || [0, 0];
-    additionalInfo.value.field1 = user.field1 || "";
-    additionalInfo.value.field2 = user.field2 || "";
-    additionalInfo.value.field3 = user.field3 || "";
+    customers.value.image = user.image || "https://mdbootstrap.com/img/new/standard/nature/184.webp";
   } catch (error) {
     console.error("Failed to fetch user data:", error);
   }
 };
 
 onMounted(() => {
-  fetchUserData().then(() => {
-    const map = L.map("map").setView(additionalInfo.value.coordinates, 13);
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-    }).addTo(map);
-
-    L.marker(additionalInfo.value.coordinates)
-      .addTo(map)
-      .bindPopup("Localisation de l'exploitation.")
-      .openPopup();
-  });
+  fetchUserData();
 });
 </script>
 
@@ -147,26 +120,5 @@ onMounted(() => {
 
 .spacer {
   height: 50px;
-}
-
-.scroll-container {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.product-item {
-  border: 1px solid #ccc;
-  padding: 10px;
-  border-radius: 5px;
-}
-
-.product-img {
-  width: 100px;
-  height: auto;
-}
-
-.additional-map {
-  width: 400px;
-  height: 400px;
 }
 </style>

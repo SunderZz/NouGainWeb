@@ -3,11 +3,10 @@
     <div class="content-container">
       <Header />
       <Profil />
-      <Footer />
+      <Footer class="footer"/>
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import Header from "../components/Homepage/Header.vue";
 import Profil from "../components/Profil/Customer.vue";
@@ -23,5 +22,14 @@ import Footer from "../components/Homepage/Footer.vue";
 .content-container {
   display: flex;
   flex-direction: column;
+}
+.footer {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  background-color: red;
+  color: white;
+  text-align: center;
 }
 </style>

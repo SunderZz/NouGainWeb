@@ -30,14 +30,20 @@ import { ref, onMounted } from "vue";
 import axios from "axios";
 import { MDBContainer, MDBRow, MDBCol } from "mdb-vue-ui-kit";
 
-const recipes = ref([]);
+interface Recipe {
+  Id_Recipes: number;
+  Title: string;
+  description: string;
+  image: string;
+}
+
+const recipes = ref<Recipe[]>([]);
 
 const fetchRecipes = async () => {
   try {
     const response = await axios.get("http://127.0.0.1:8000/recipes/");
     recipes.value = response.data;
   } catch (error) {
-    console.error("Erreur lors de la récupération des recettes:", error);
   }
 };
 

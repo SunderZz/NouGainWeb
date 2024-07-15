@@ -1,5 +1,5 @@
 <template>
-  <MDBContainer fluid class="mt-4">
+  <MDBContainer fluid class="mt-4" style="min-height: 100vh;">
     <MDBRow class="mb-4">
       <MDBCol md="6">
         <h1 class="recipe-title">{{ recipe.title }}</h1>
@@ -16,11 +16,11 @@
       </MDBCol>
     </MDBRow>
     <MDBRow>
-      <MDBCol md="6">
+      <MDBCol md="12">
         <h3>Étapes</h3>
-        <ul class="steps-list">
+        <ol class="steps-list">
           <li v-for="(step, index) in recipe.steps" :key="index">{{ step }}</li>
-        </ul>
+        </ol>
       </MDBCol>
     </MDBRow>
   </MDBContainer>
@@ -32,9 +32,17 @@ import { useRoute } from "vue-router";
 import axios from "axios";
 import { MDBContainer, MDBRow, MDBCol } from "mdb-vue-ui-kit";
 
+interface Recipe {
+  title: string;
+  description: string;
+  image: string;
+  ingredients: string[];
+  steps: string[];
+}
+
 const route = useRoute();
-const recipeId = route.params.id;
-const recipe = ref({
+const recipeId = route.params.id as string;
+const recipe = ref<Recipe>({
   title: "",
   description: "",
   image: "",
@@ -45,18 +53,16 @@ const recipe = ref({
 const fetchRecipeDetails = async () => {
   try {
     const response = await axios.get(`http://127.0.0.1:8000/recipes_id?recipe=${recipeId}`);
-    console.log("Recipe details:", response.data);
-    
     const data = response.data;
     recipe.value = {
       title: data.Title,
       description: data.description,
       image: data.image,
-      ingredients: data.ingredient.split(", ").map(item => item.trim()),
-      steps: data.Recipe.split(", ").map(item => item.trim()),
+      ingredients: data.ingredient.split('.').map((item: string) => item.trim()),
+      steps: data.Recipe.split('.').map((item: string) => item.trim()),
     };
   } catch (error) {
-    console.error("Erreur lors de la récupération de la recette:", error);
+    console.error(error);
   }
 };
 
@@ -64,6 +70,11 @@ onMounted(fetchRecipeDetails);
 </script>
 
 <style scoped>
+body, html {
+  height: 100%;
+  margin: 0;
+}
+
 .recipe-title {
   font-size: 2rem;
   font-weight: bold;
@@ -77,14 +88,16 @@ onMounted(fetchRecipeDetails);
 }
 
 .recipe-image {
-  width: 70%;
+  width: 100%;
   height: auto;
   border-radius: 10px;
+  object-fit: cover;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .ingredients-list,
 .steps-list {
-  list-style-type: none;
+  list-style: none;
   padding: 0;
   margin: 0;
 }
@@ -92,6 +105,30 @@ onMounted(fetchRecipeDetails);
 .ingredients-list li,
 .steps-list li {
   font-size: 1rem;
-  margin-bottom: 5px;
+  margin-bottom: 10px;
+  background: #f9f9f9;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.steps-list {
+  counter-reset: step;
+}
+
+.steps-list li {
+  counter-increment: step;
+  position: relative;
+  padding-left: 30px;
+}
+
+.steps-list li::before {
+  content: counter(step) ". ";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: bold;
+  color: #007bff;
 }
 </style>

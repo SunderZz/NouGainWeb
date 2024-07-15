@@ -13,6 +13,7 @@ import Header from "../components/Homepage/Header.vue";
 import Recipes from "../components/Recipes/RecipesDetail.vue";
 import Footer from "../components/Homepage/Footer.vue";
 </script>
+
 <style scoped>
 .home-container {
   position: relative;
