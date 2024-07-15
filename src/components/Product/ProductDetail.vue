@@ -1,58 +1,64 @@
 <template>
   <MDBContainer fluid class="mt-4 d-flex flex-column flex-grow-1">
-    <MDBRow class="mb-4 flex-grow-1">
-      <MDBCol md="6">
-        <MDBCard class="h-100">
-          <img :src="product.image" class="card-img-top" alt="Product image" />
-        </MDBCard>
-      </MDBCol>
-      <MDBCol md="6">
-        <div class="d-flex flex-column justify-content-between h-100">
-          <div>
-            <h2>{{ product.Name }}</h2>
-            <p>{{ product.Description }}</p>
-            <p>
-              <strong>Producteur :</strong>
-              <router-link :to="'/ListAgriculteur/' + producerId">{{ producer }}</router-link>
-            </p>
-          </div>
-          <div class="d-flex flex-column">
-            <p>Ajouter au panier :</p>
-            <div class="d-flex align-items-center">
-              <MDBBtn v-if="product.quantity > 0" @click="decrementQuantity" color="danger">-</MDBBtn>
-              <span v-if="product.quantity > 0" class="mx-2">{{ product.quantity }}</span>
-              <MDBBtn @click="incrementQuantity" color="primary">+</MDBBtn>
+    <div v-if="!productActive" class="text-center">
+      <h2>Le produit choisi est indisponible.</h2>
+      <MDBBtn @click="goHome" color="primary">Retour à l'accueil</MDBBtn>
+    </div>
+    <div v-else>
+      <MDBRow class="mb-4 flex-grow-1">
+        <MDBCol md="6">
+          <MDBCard class="h-100">
+            <img :src="product.image" class="card-img-top" alt="Product image" />
+          </MDBCard>
+        </MDBCol>
+        <MDBCol md="6">
+          <div class="d-flex flex-column justify-content-between h-100">
+            <div>
+              <h2>{{ product.Name }}</h2>
+              <p>{{ product.Description }}</p>
+              <p>
+                <strong>Producteur :</strong>
+                <router-link :to="'/ListAgriculteur/' + producerId">{{ producer }}</router-link>
+              </p>
+            </div>
+            <div class="d-flex flex-column">
+              <p>Ajouter au panier :</p>
+              <div class="d-flex align-items-center">
+                <MDBBtn v-if="product.quantity > 0" @click="decrementQuantity" color="danger">-</MDBBtn>
+                <span v-if="product.quantity > 0" class="mx-2">{{ product.quantity }}</span>
+                <MDBBtn @click="incrementQuantity" color="primary">+</MDBBtn>
+              </div>
             </div>
           </div>
-        </div>
-      </MDBCol>
-    </MDBRow>
+        </MDBCol>
+      </MDBRow>
 
-    <MDBRow class="mb-4">
-      <MDBCol>
-        <h2>{{ product.price }} €</h2>
-        <p>{{ product.Description }}</p>
-      </MDBCol>
-    </MDBRow>
+      <MDBRow class="mb-4">
+        <MDBCol>
+          <h2>{{ product.price }} €</h2>
+          <p>{{ product.Description }}</p>
+        </MDBCol>
+      </MDBRow>
 
-    <MDBRow class="flex-grow-1">
-      <MDBCol>
-        <h2>Avis (Note globale : {{ averageRating }})</h2>
-        <ul>
-          <li v-for="(comment, index) in comments" :key="index">
-            <strong>{{ comment.Title }}</strong> - <small class="text-muted">{{ comment.Notice_date }}</small>
-            <p>{{ comment.Notice }} <span>({{ comment.Note }}/10)</span></p>
-          </li>
-        </ul>
-        <MDBBtn @click="toggleCommentForm" color="primary">Poster un commentaire</MDBBtn>
-        <form v-if="showCommentForm" @submit.prevent="submitComment" class="mt-3">
-          <MDBInput v-model="newComment.Title" label="Titre" type="text" class="mb-3" required />
-          <MDBInput v-model="newComment.Notice" label="Commentaire" type="textarea" class="mb-3" required />
-          <MDBInput v-model="newComment.Note" label="Note (1-10)" type="number" min="1" max="10" class="mb-3" required />
-          <MDBBtn type="submit" color="success">Envoyer</MDBBtn>
-        </form>
-      </MDBCol>
-    </MDBRow>
+      <MDBRow class="flex-grow-1">
+        <MDBCol>
+          <h2>Avis (Note globale : {{ averageRating }})</h2>
+          <ul>
+            <li v-for="(comment, index) in comments" :key="index">
+              <strong>{{ comment.Title }}</strong> - <small class="text-muted">{{ comment.Notice_date }}</small>
+              <p>{{ comment.Notice }} <span>({{ comment.Note }}/10)</span></p>
+            </li>
+          </ul>
+          <MDBBtn @click="toggleCommentForm" color="primary">Poster un commentaire</MDBBtn>
+          <form v-if="showCommentForm" @submit.prevent="submitComment" class="mt-3">
+            <MDBInput v-model="newComment.Title" label="Titre" type="text" class="mb-3" required />
+            <MDBInput v-model="newComment.Notice" label="Commentaire" type="textarea" class="mb-3" required />
+            <MDBInput v-model="newComment.Note" label="Note (1-10)" type="number" min="1" max="10" class="mb-3" required />
+            <MDBBtn type="submit" color="success">Envoyer</MDBBtn>
+          </form>
+        </MDBCol>
+      </MDBRow>
+    </div>
   </MDBContainer>
 </template>
 
@@ -70,6 +76,7 @@ interface Product {
   quantity: number;
   price: number;
   Id_Product: number;
+  Active: boolean;
 }
 
 interface Comment {
@@ -90,6 +97,7 @@ const product = ref<Product>({
   quantity: 0,
   price: 0,
   Id_Product: 0,
+  Active: false,
 });
 
 const producer = ref<string>("");
@@ -98,6 +106,7 @@ const comments = ref<Comment[]>([]);
 const selectedProducts = ref<Set<string>>(new Set());
 const averageRating = ref<number>(0);
 const showCommentForm = ref<boolean>(false);
+const productActive = ref<boolean>(true);
 
 const newComment = ref<Comment>({
   Title: "",
@@ -111,6 +120,7 @@ const fetchProduct = async (productId: number) => {
     const storedProduct = store.getters.getProductById(productId);
     if (storedProduct) {
       product.value = storedProduct;
+      productActive.value = storedProduct.Active;
     } else {
       const response = await axios.get(`http://127.0.0.1:8000/products_by_id/?id=${productId}`);
       const data = response.data;
@@ -121,11 +131,16 @@ const fetchProduct = async (productId: number) => {
         quantity: 0,
         price: data.Price_ht,
         Id_Product: data.Id_Product,
+        Active: data.Active,
       };
+      productActive.value = data.Active;
     }
-    await fetchProducerName(productId);
-    await fetchComments(productId);
+    if (productActive.value) {
+      await fetchProducerName(productId);
+      await fetchComments(productId);
+    }
   } catch (error) {
+    productActive.value = false;
   }
 };
 
@@ -336,6 +351,10 @@ const submitComment = async () => {
     location.reload();
   } catch (error) {
   }
+};
+
+const goHome = () => {
+  router.push("/");
 };
 
 watch(route, () => {

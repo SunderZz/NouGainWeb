@@ -101,6 +101,7 @@ import axios from "axios";
 interface Product {
   Id_Product: number;
   Name: string;
+  Active: boolean;
 }
 
 interface Recipe {
@@ -138,12 +139,12 @@ const search = async () => {
       }),
     ]);
 
-    products.value = productResponse.data.filter(
-      (product) =>
-        product &&
-        product.Name &&
-        product.Name.toLowerCase().includes(searchQuery.value.toLowerCase())
-    );
+    products.value = productResponse.data
+      .filter(
+        (product) =>
+          product.Active &&
+          product.Name.toLowerCase().includes(searchQuery.value.toLowerCase())
+      );
     recipes.value = recipeResponse.data.filter(
       (recipe) =>
         recipe &&

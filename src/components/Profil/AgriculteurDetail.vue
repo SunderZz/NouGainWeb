@@ -1,6 +1,6 @@
 <template>
   <MDBContainer fluid class="mt-4">
-    <div class="background-image-container position-relative">
+    <div v-if="farmer.active" class="background-image-container position-relative">
       <div class="profile-container">
         <MDBCard class="profile-card">
           <img
@@ -9,17 +9,21 @@
             alt="Profile image"
           />
           <MDBCardBody class="text-center">
-            <MDBCardTitle>{{ farmer.name }}</MDBCardTitle>
+            <MDBCardTitle>{{ farmer.firstName }} {{ farmer.lastName }}</MDBCardTitle>
             <br />
             <MDBCardText>{{ farmer.description }}</MDBCardText>
           </MDBCardBody>
         </MDBCard>
       </div>
     </div>
+    <div v-else class="text-center mt-4">
+      <h2>Le producteur choisi est indisponible.</h2>
+      <MDBBtn @click="goHome" color="primary">Retour à l'accueil</MDBBtn>
+    </div>
 
     <div class="spacer"></div>
 
-    <MDBRow class="mb-4">
+    <MDBRow v-if="farmer.active" class="mb-4">
       <MDBCol>
         <div class="scroll-container">
           <div
@@ -48,7 +52,7 @@
       </MDBCol>
     </MDBRow>
 
-    <MDBRow>
+    <MDBRow v-if="farmer.active">
       <MDBCol>
         <h2>Informations supplémentaires</h2>
         <div class="d-flex justify-content-between">
@@ -69,11 +73,12 @@ import {
   MDBCardBody,
   MDBCardTitle,
   MDBCardText,
+  MDBBtn,
 } from "mdb-vue-ui-kit";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import axios from "axios";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 interface Product {
   Name: string;
@@ -83,10 +88,12 @@ interface Product {
 }
 
 interface Farmer {
-  name: string;
+  firstName: string;
+  lastName: string;
   description: string;
   image: string;
   products: Product[];
+  active: boolean;
 }
 
 interface Address {
@@ -99,24 +106,39 @@ interface Address {
 }
 
 const farmer = ref<Farmer>({
-  name: "",
+  firstName: "",
+  lastName: "",
   description: "",
   image: "",
   products: [],
+  active: false,
 });
 
 const addresses = ref<Address[]>([]);
 const route = useRoute();
+const router = useRouter();
 
 const fetchFarmerData = async (): Promise<void> => {
   const userId = route.params.id;
   try {
-    const userResponse = await axios.get(`http://127.0.0.1:8000/users/${userId}/addresses`);
-    addresses.value = userResponse.data;
-    
+    const userResponse = await axios.get(`http://127.0.0.1:8000/users/${userId}`);
+    const user = userResponse.data;
+
+    if (!user.active) {
+      farmer.value.active = false;
+      return;
+    }
+
+    farmer.value.firstName = user.F_Name;
+    farmer.value.lastName = user.Name;
+    farmer.value.active = true;
+
+    const addressResponse = await axios.get(`http://127.0.0.1:8000/users/${userId}/addresses`);
+    addresses.value = addressResponse.data;
+
     const producerResponse = await axios.get(`http://127.0.0.1:8000/producers_by_user/${userId}`);
-    
     const producerId = producerResponse.data.Id_Producers;
+
     const giveResponse = await axios.get("http://127.0.0.1:8000/give_producers", {
       params: { give_id: producerId },
     });
@@ -130,7 +152,6 @@ const fetchFarmerData = async (): Promise<void> => {
       productDetails.push(productResponse.data);
     }
 
-    farmer.value.name = producerResponse.data.Name;
     farmer.value.description = producerResponse.data.description;
     farmer.value.image = producerResponse.data.image;
     farmer.value.products = productDetails;
@@ -138,10 +159,13 @@ const fetchFarmerData = async (): Promise<void> => {
   }
 };
 
+const goHome = () => {
+  router.push("/");
+};
+
 onMounted((): void => {
   fetchFarmerData().then((): void => {
-    
-    if (addresses.value.length > 0) {
+    if (farmer.value.active && addresses.value.length > 0) {
       const coordinates = [addresses.value[0].Latitude, addresses.value[0].Longitude];
       const map = L.map("map").setView(coordinates, 13);
 
