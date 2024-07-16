@@ -515,7 +515,7 @@ const validatePayment = async (): Promise<void> => {
     });
     const userId = userResponse.data.Id_Users;
 
-    const customerResponse = await axios.get(`http://127.0.0.1:8000/customers_by_id`, {
+    const customerResponse = await axios.get(`http://127.0.0.1:8000/user_by_id`, {
       params: { customers: userId },
     });
     const idCasual = customerResponse.data.Id_Casual;

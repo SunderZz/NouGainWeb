@@ -128,7 +128,7 @@ const processPayment = async (): Promise<void> => {
     );
 
     const customerResponse = await axios.get(
-      `http://127.0.0.1:8000/customers_by_id?customers=${userResponse.data.Id_Users}`
+      `http://127.0.0.1:8000/user_by_id?customers=${userResponse.data.Id_Users}`
     );
     const customerId = customerResponse.data.Id_Casual;
 

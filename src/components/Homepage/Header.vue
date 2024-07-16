@@ -7,9 +7,7 @@
             <MDBIcon icon="home" size="sm" />
           </MDBNavbarBrand>
         </div>
-        <div
-          class="col-md-6 d-flex justify-content-center align-items-center"
-        >
+        <div class="col-md-6 d-flex justify-content-center align-items-center">
           <form class="d-flex input-group w-75" @submit.prevent="search">
             <input
               type="search"
@@ -19,11 +17,7 @@
               v-model="searchQuery"
               @input="onInput"
             />
-            <MDBBtn
-              class="custom-btn"
-              style="background-color: white"
-              @click="search"
-            >
+            <MDBBtn class="custom-btn" @click="search">
               <MDBIcon icon="search" />
             </MDBBtn>
           </form>
@@ -52,7 +46,7 @@
           </div>
         </div>
         <div class="col-md-3 d-flex justify-content-end align-items-center">
-          <MDBNavbarNav class="mb-2 mb-lg-0 d-flex">
+          <MDBNavbarNav class="mb-2 mb-lg-0 d-flex align-items-center">
             <MDBNavbarItem tag="router-link" to="/ProductList" active>
               Boutique
             </MDBNavbarItem>
@@ -67,13 +61,12 @@
             </MDBNavbarBrand>
             <MDBNavbarBrand tag="router-link" to="/Cart">
               <MDBIcon icon="shopping-cart" size="sm" />
-              <span class="badge badge-pill badge-danger">{{ cartItemCount }}</span>
+              <span class="badge">{{ cartItemCount }}</span>
             </MDBNavbarBrand>
             <MDBBtn
               v-if="authToken"
-              class="ms-3 btn-sm"
+              class="custom-logout-btn"
               @click="logout"
-              style="background-color: red; height: 25px; width: 15px;"
             >
               <MDBIcon fas icon="sign-out-alt" />
             </MDBBtn>
@@ -222,16 +215,30 @@ onMounted(() => {
 </script>
 
 <style>
-.custom-btn {
+.custom-btn, .custom-logout-btn {
   height: 35px;
+  width: 35px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
+
+.custom-logout-btn {
+  background-color: red;
+}
+
 .badge {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   position: absolute;
-  top: 10px;
+  top: 12px;
   right: 10px;
+  height:35px;
   background-color: red;
   color: white;
 }
+
 .search-results-container {
   width: 100%;
   max-width: 500px;
@@ -245,24 +252,29 @@ onMounted(() => {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   z-index: 1000;
 }
+
 .search-results {
   padding: 10px;
   max-height: 300px;
   overflow-y: auto;
 }
+
 .search-results h5 {
   margin-top: 10px;
 }
+
 .search-results ul {
   list-style-type: none;
   padding: 0;
 }
+
 .search-results li {
   background-color: #f8f9fa;
   margin: 5px 0;
   padding: 10px;
   border-radius: 5px;
 }
+
 .no-results {
   padding: 10px;
   color: #999;

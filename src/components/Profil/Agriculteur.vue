@@ -77,6 +77,7 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import axios from "axios";
+import Login from "../Connection/Login.vue";
 
 interface Product {
   Name: string;
@@ -103,8 +104,8 @@ interface Address {
   Phone: number;
   Creation: string;
   Modification: string;
-  Latitude: number;
-  Longitude: number;
+  Latitude: number | null;
+  Longitude: number | null;
 }
 
 const isProducer = ref<boolean>(false);
@@ -174,7 +175,7 @@ const fetchUserData = async () => {
 
 onMounted(() => {
   fetchUserData().then(() => {
-    if (addresses.value.length > 0) {
+    if (addresses.value.length > 0 && addresses.value[0].Latitude && addresses.value[0].Longitude) {
       const coordinates = [addresses.value[0].Latitude, addresses.value[0].Longitude];
       const map = L.map("map").setView(coordinates, 13);
 

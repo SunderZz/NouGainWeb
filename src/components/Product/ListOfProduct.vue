@@ -327,8 +327,9 @@ const getUserFromToken = async (): Promise<any> => {
 
 const getCustomerById = async (customerId: number): Promise<any> => {
   try {
+
     const response = await axios.get(
-      `http://127.0.0.1:8000/customers_by_id?customers=${customerId}`
+      `http://127.0.0.1:8000/user_by_id?customers=${customerId}`
     );
     return response.data;
   } catch (error) {
@@ -360,6 +361,7 @@ const addOrUpdateCart = async (productId: number, quantity: number): Promise<voi
       });
 
       orderId = response.data.Id_Orders;
+      
       localStorage.setItem("orderId", orderId);
     } catch (error) {
       return;

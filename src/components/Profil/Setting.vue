@@ -157,7 +157,7 @@ const submitForm = async () => {
     const response = await axios.get("http://127.0.0.1:8000/users_by_token", {
       params: { token },
     });
-    const user = response.data;
+    const user = response.data;    
     await axios.put(
       `http://127.0.0.1:8000/users/${user.Id_Users}`,
       userPayload,

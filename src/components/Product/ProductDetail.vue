@@ -18,7 +18,7 @@
               <p>{{ product.Description }}</p>
               <p>
                 <strong>Producteur :</strong>
-                <router-link :to="'/ListAgriculteur/' + producerId">{{ producer }}</router-link>
+                <router-link :to="'/AgriculteurDetail/' + userId">{{ producer }}</router-link>
               </p>
             </div>
             <div class="d-flex flex-column">
@@ -45,7 +45,7 @@
           <h2>Avis (Note globale : {{ averageRating }})</h2>
           <ul>
             <li v-for="(comment, index) in comments" :key="index">
-              <strong>{{ comment.Title }}</strong> - <small class="text-muted">{{ comment.Notice_date }}</small>
+              <strong>{{ comment.userName }} : {{ comment.Title }}</strong> - <small class="text-muted">{{ comment.Notice_date }}</small>
               <p>{{ comment.Notice }} <span>({{ comment.Note }}/10)</span></p>
             </li>
           </ul>
@@ -61,9 +61,8 @@
     </div>
   </MDBContainer>
 </template>
-
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeMount } from "vue";
+import { ref, watch, onMounted } from "vue";
 import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
@@ -84,6 +83,8 @@ interface Comment {
   Notice: string;
   Notice_date: string;
   Note: number;
+  Id_Notice: number;
+  userName?: string;
 }
 
 const route = useRoute();
@@ -102,6 +103,7 @@ const product = ref<Product>({
 
 const producer = ref<string>("");
 const producerId = ref<number | null>(null);
+const userId = ref<number | null>(null);
 const comments = ref<Comment[]>([]);
 const selectedProducts = ref<Set<string>>(new Set());
 const averageRating = ref<number>(0);
@@ -119,11 +121,12 @@ const fetchProduct = async (productId: number) => {
   try {
     const storedProduct = store.getters.getProductById(productId);
     if (storedProduct) {
+      
       product.value = storedProduct;
       productActive.value = storedProduct.Active;
     } else {
       const response = await axios.get(`http://127.0.0.1:8000/products_by_id/?id=${productId}`);
-      const data = response.data;
+      const data = response.data;      
       product.value = {
         Name: data.Name,
         Description: data.Description,
@@ -149,6 +152,7 @@ const fetchProducerName = async (productId: number): Promise<void> => {
     const giveResponse = await axios.get(`http://127.0.0.1:8000/give/${productId}`);
     producerId.value = giveResponse.data.Id_Producers;
     const userResponse = await axios.get(`http://127.0.0.1:8000/user_by_producer?producer_id=${producerId.value}`);
+    userId.value = userResponse.data.Id_Users;
     producer.value = `${userResponse.data.F_Name} ${userResponse.data.Name}`;
   } catch (error) {
     producer.value = "Inconnu";
@@ -158,7 +162,20 @@ const fetchProducerName = async (productId: number): Promise<void> => {
 const fetchComments = async (productId: number) => {
   try {
     const response = await axios.get(`http://127.0.0.1:8000/get_notice_by_id?product=${productId}`);
-    comments.value = response.data;
+    const commentsData = response.data;
+
+    for (const comment of commentsData) {     
+       
+      const giveResponse = await axios.get(`http://127.0.0.1:8000/Give_1/${comment.Id_Notice}`);
+      const customerId = giveResponse.data.Id_Casual;
+      const customerResponse = await axios.get(`http://127.0.0.1:8000/customers_by_id?customers=${customerId}`);
+      const userId = customerResponse.data.Id_Users;
+      const userResponse = await axios.get(`http://127.0.0.1:8000/users/${userId}`);
+      const userName = userResponse.data.F_Name;
+
+      comments.value.push({ ...comment, userName });
+    }
+
     calculateAverageRating();
   } catch (error) {
   }
@@ -251,17 +268,19 @@ const getUserFromToken = async (): Promise<any> => {
 
 const getCustomerById = async (customerId: number): Promise<any> => {
   try {
-    const response = await axios.get(`http://127.0.0.1:8000/customers_by_id?customers=${customerId}`);
+    
+    const response = await axios.get(
+      `http://127.0.0.1:8000/user_by_id?customers=${customerId}`
+    );
     return response.data;
   } catch (error) {
     return null;
   }
 };
 
-const addOrUpdateCart = async (productId: number, quantity: number) => {
+const addOrUpdateCart = async (productId: number, quantity: number): Promise<void> => {
   const user = await getUserFromToken();
   if (!user) {
-    router.push("/Login");
     return;
   }
 
@@ -281,7 +300,9 @@ const addOrUpdateCart = async (productId: number, quantity: number) => {
         Ship_Date: null,
         Id_Casual: customer.Id_Casual,
       });
-      orderId = response.data.id;
+
+      orderId = response.data.Id_Orders;
+      
       localStorage.setItem("orderId", orderId);
     } catch (error) {
       return;
@@ -309,6 +330,7 @@ const addOrUpdateCart = async (productId: number, quantity: number) => {
     }
   }
 };
+
 
 const checkExistingLine = async (orderId: number, productId: number): Promise<any> => {
   try {
@@ -339,6 +361,9 @@ const submitComment = async () => {
 
   const customerId = user.Id_Users;
 
+  const customerResponse = await axios.get(`http://127.0.0.1:8000/user_by_id?customers=${customerId}`);
+  const idCasual = customerResponse.data.Id_Casual;
+
   const payload = {
     Title: newComment.value.Title,
     Notice: newComment.value.Notice,
@@ -347,7 +372,7 @@ const submitComment = async () => {
   };
 
   try {
-    await axios.post(`http://127.0.0.1:8000/given/?id_customer=${customerId}&product=${product.value.Id_Product}`, payload);
+    await axios.post(`http://127.0.0.1:8000/given/?id_customer=${idCasual}&product=${product.value.Id_Product}`, payload);
     location.reload();
   } catch (error) {
   }
@@ -369,11 +394,64 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.star-rating {
-  font-size: 24px;
+.custom-btn, .custom-logout-btn {
+  height: 35px;
+  width: 35px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.star {
-  color: #ffd700;
+.custom-logout-btn {
+  background-color: red;
+}
+
+.badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: red;
+  color: white;
+}
+
+.search-results-container {
+  width: 100%;
+  max-width: 500px;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.search-results {
+  padding: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.search-results h5 {
+  margin-top: 10px;
+}
+
+.search-results ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.search-results li {
+  background-color: #f8f9fa;
+  margin: 5px 0;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.no-results {
+  padding: 10px;
+  color: #999;
 }
 </style>
