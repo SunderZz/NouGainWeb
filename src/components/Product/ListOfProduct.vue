@@ -62,7 +62,7 @@
                   />
                 </a>
                 <MDBCardText>{{ product.Description }}</MDBCardText>
-                <div class="d-flex align-items-center justify-content-between">
+                <div v-if="userIsCustomer" class="d-flex align-items-center justify-content-between">
                   <div class="d-flex align-items-center">
                     <MDBBtn
                       v-if="product.quantity > 0"
@@ -139,6 +139,7 @@ const store = useStore();
 const router = useRouter();
 
 const dropdown1 = ref<boolean>(false);
+const userIsCustomer = ref<boolean>(false);
 
 const toggleDropdown = (): void => {
   dropdown1.value = !dropdown1.value;
@@ -174,9 +175,10 @@ const fetchFilters = async (): Promise<void> => {
   }
 };
 
-onMounted(() => {
-  fetchProducts();
-  fetchFilters();
+onMounted(async () => {
+  await fetchProducts();
+  await fetchFilters();
+  userIsCustomer.value = await isUserCustomer();
 });
 
 const incrementQuantity = async (product: Product): Promise<void> => {
@@ -409,6 +411,17 @@ const checkExistingLine = async (orderId: string, productId: number): Promise<an
 const isUserLoggedIn = (): boolean => {
   const token = localStorage.getItem("authToken");
   return !!token;
+};
+
+const isUserCustomer = async (): Promise<boolean> => {
+  const user = await getUserFromToken();
+  if (!user) {
+    return false;
+  }
+
+  const customerId = user.Id_Users;
+  const customer = await getCustomerById(customerId);
+  return !!customer;
 };
 
 watch(

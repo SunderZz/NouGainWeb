@@ -21,7 +21,7 @@
                 <router-link :to="'/AgriculteurDetail/' + userId">{{ producer }}</router-link>
               </p>
             </div>
-            <div class="d-flex flex-column">
+            <div v-if="userIsCustomer" class="d-flex flex-column">
               <p>Ajouter au panier :</p>
               <div class="d-flex align-items-center">
                 <MDBBtn v-if="product.quantity > 0" @click="decrementQuantity" color="danger">-</MDBBtn>
@@ -61,6 +61,7 @@
     </div>
   </MDBContainer>
 </template>
+
 <script setup lang="ts">
 import { ref, watch, onMounted } from "vue";
 import axios from "axios";
@@ -109,6 +110,7 @@ const selectedProducts = ref<Set<string>>(new Set());
 const averageRating = ref<number>(0);
 const showCommentForm = ref<boolean>(false);
 const productActive = ref<boolean>(true);
+const userIsCustomer = ref<boolean>(false);
 
 const newComment = ref<Comment>({
   Title: "",
@@ -121,7 +123,6 @@ const fetchProduct = async (productId: number) => {
   try {
     const storedProduct = store.getters.getProductById(productId);
     if (storedProduct) {
-      
       product.value = storedProduct;
       productActive.value = storedProduct.Active;
     } else {
@@ -382,14 +383,26 @@ const goHome = () => {
   router.push("/");
 };
 
+const isUserCustomer = async (): Promise<boolean> => {
+  const user = await getUserFromToken();
+  if (!user) {
+    return false;
+  }
+
+  const customerId = user.Id_Users;
+  const customer = await getCustomerById(customerId);
+  return !!customer;
+};
+
 watch(route, () => {
   const productId = parseInt(route.params.id, 10);
   fetchProduct(productId);
 });
 
-onMounted(() => {
+onMounted(async () => {
   const productId = parseInt(route.params.id, 10);
-  fetchProduct(productId);
+  await fetchProduct(productId);
+  userIsCustomer.value = await isUserCustomer();
 });
 </script>
 
