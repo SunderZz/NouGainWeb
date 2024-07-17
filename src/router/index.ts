@@ -43,6 +43,12 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: "/OrderHistory",
+    name: "order_history",
+    component: () => import("../views/OrderHistoryPage.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/AgriculteurList",
     name: "list_agriculteur",
     component: () => import("../views/AgriculteurListPage.vue"),

@@ -75,7 +75,6 @@ import {
   MDBCardBody,
 } from "mdb-vue-ui-kit";
 
-// Types pour les données
 interface OrderInfo {
   orderNumber: string;
   expectedDate: string;
@@ -93,7 +92,6 @@ interface Product {
   quantity: number;
 }
 
-// Utiliser la route pour obtenir les informations de la commande
 const route = useRoute();
 const store = useStore();
 

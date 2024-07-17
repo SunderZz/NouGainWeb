@@ -2,7 +2,7 @@
   <div class="home-container">
     <div class="content-container">
       <Header />
-      <Customer />
+      <Order />
     </div>
     <Footer class="footer" />
   </div>
@@ -10,7 +10,7 @@
 
 <script setup lang="ts">
 import Header from "../components/Homepage/Header.vue";
-import Customer from "../components/Profil/Customer.vue";
+import Order from "../components/Profil/OrderHistory.vue";
 import Footer from "../components/Homepage/Footer.vue";
 </script>
 

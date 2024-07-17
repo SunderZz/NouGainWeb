@@ -120,12 +120,9 @@ const processPayment = async (): Promise<void> => {
   }
 
   try {
-    const userResponse = await axios.get(
-      "http://127.0.0.1:8000/users_by_token",
-      {
-        params: { token },
-      }
-    );
+    const userResponse = await axios.get("http://127.0.0.1:8000/users_by_token", {
+      params: { token },
+    });
 
     const customerResponse = await axios.get(
       `http://127.0.0.1:8000/user_by_id?customers=${userResponse.data.Id_Users}`
@@ -153,6 +150,22 @@ const processPayment = async (): Promise<void> => {
       },
     });
 
+    const totalAmount = products.value.reduce((sum, product) => {
+      return sum + product.Price_ht * product.quantity;
+    }, 0);
+
+    const productNames = products.value.map(product => product.Name).join(", ");
+
+    const paymentData = {
+      Payment_Date: today.toISOString().split("T")[0],
+      Amount: totalAmount,
+      Bills: productNames,
+      Status: true,
+      Id_Orders: parseInt(orderId, 10),
+    };
+
+    await axios.post("http://127.0.0.1:8000/payment/", paymentData);
+
     router.push({
       path: "/ValidatePayement",
       query: { orderId },
@@ -160,6 +173,7 @@ const processPayment = async (): Promise<void> => {
   } catch (error) {
   }
 };
+
 
 onMounted(() => {
   fetchCartProducts();

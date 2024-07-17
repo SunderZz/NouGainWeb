@@ -20,16 +20,20 @@
 
     <div class="spacer"></div>
 
+    <div class="text-center mt-3">
+      <MDBBtn color="primary" @click="navigateToOrderHistory">
+        View Order History
+      </MDBBtn>
+    </div>
   </MDBContainer>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import axios from "axios";
 import {
   MDBContainer,
-  MDBRow,
-  MDBCol,
   MDBCard,
   MDBBtn,
   MDBIcon,
@@ -47,6 +51,7 @@ const customers = ref<Customer>({
   image: "",
 });
 
+const router = useRouter();
 
 const fetchUserData = async () => {
   try {
@@ -63,6 +68,10 @@ const fetchUserData = async () => {
     customers.value.image = user.image || "https://mdbootstrap.com/img/new/standard/nature/184.webp";
   } catch (error) {
   }
+};
+
+const navigateToOrderHistory = () => {
+  router.push({ path: '/OrderHistory' });
 };
 
 onMounted(() => {
