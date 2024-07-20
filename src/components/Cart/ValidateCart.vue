@@ -103,12 +103,25 @@ const fetchCartProducts = async (): Promise<void> => {
       const productResponse = await axios.get(
         `http://127.0.0.1:8000/products_by_id/?id=${item.Id_Product}`
       );
-      return { ...productResponse.data, quantity: item.qte };
+      const product: Product = productResponse.data;
+      product.quantity = item.qte;
+
+      let imageUrl = "https://via.placeholder.com/100";
+      try {
+        const imageResponse = await axios.get(
+          `http://127.0.0.1:8000/produit_image?produit_image_id=${product.Id_Product}&field_name=Id_Product`,
+          { responseType: "blob" }
+        );
+        imageUrl = URL.createObjectURL(imageResponse.data);
+      } catch (error) {
+      }
+
+      product.image = imageUrl;
+      return product;
     });
 
     products.value = await Promise.all(productRequests);
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const processPayment = async (): Promise<void> => {
@@ -120,9 +133,12 @@ const processPayment = async (): Promise<void> => {
   }
 
   try {
-    const userResponse = await axios.get("http://127.0.0.1:8000/users_by_token", {
-      params: { token },
-    });
+    const userResponse = await axios.get(
+      "http://127.0.0.1:8000/users_by_token",
+      {
+        params: { token },
+      }
+    );
 
     const customerResponse = await axios.get(
       `http://127.0.0.1:8000/user_by_id?customers=${userResponse.data.Id_Users}`
@@ -154,7 +170,9 @@ const processPayment = async (): Promise<void> => {
       return sum + product.Price_ht * product.quantity;
     }, 0);
 
-    const productNames = products.value.map(product => product.Name).join(", ");
+    const productNames = products.value
+      .map((product) => product.Name)
+      .join(", ");
 
     const paymentData = {
       Payment_Date: today.toISOString().split("T")[0],
@@ -170,10 +188,8 @@ const processPayment = async (): Promise<void> => {
       path: "/ValidatePayement",
       query: { orderId },
     });
-  } catch (error) {
-  }
+  } catch (error) {}
 };
-
 
 onMounted(() => {
   fetchCartProducts();
@@ -195,7 +211,7 @@ onMounted(() => {
 .product-img {
   width: 100px;
   height: 100px;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .text-center {

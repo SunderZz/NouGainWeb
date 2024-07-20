@@ -8,7 +8,11 @@
       <MDBRow class="mb-4 flex-grow-1">
         <MDBCol md="6">
           <MDBCard class="h-100">
-            <img :src="product.image" class="card-img-top" alt="Product image" />
+            <img
+              :src="product.image"
+              class="card-img-top product-image"
+              alt="Product image"
+            />
           </MDBCard>
         </MDBCol>
         <MDBCol md="6">
@@ -18,14 +22,23 @@
               <p>{{ product.Description }}</p>
               <p>
                 <strong>Producteur :</strong>
-                <router-link :to="'/AgriculteurDetail/' + userId">{{ producer }}</router-link>
+                <router-link :to="'/AgriculteurDetail/' + userId">{{
+                  producer
+                }}</router-link>
               </p>
             </div>
             <div v-if="userIsCustomer" class="d-flex flex-column">
               <p>Ajouter au panier :</p>
               <div class="d-flex align-items-center">
-                <MDBBtn v-if="product.quantity > 0" @click="decrementQuantity" color="danger">-</MDBBtn>
-                <span v-if="product.quantity > 0" class="mx-2">{{ product.quantity }}</span>
+                <MDBBtn
+                  v-if="product.quantity > 0"
+                  @click="decrementQuantity"
+                  color="danger"
+                  >-</MDBBtn
+                >
+                <span v-if="product.quantity > 0" class="mx-2">{{
+                  product.quantity
+                }}</span>
                 <MDBBtn @click="incrementQuantity" color="primary">+</MDBBtn>
               </div>
             </div>
@@ -45,15 +58,44 @@
           <h2>Avis (Note globale : {{ averageRating }})</h2>
           <ul>
             <li v-for="(comment, index) in comments" :key="index">
-              <strong>{{ comment.userName }} : {{ comment.Title }}</strong> - <small class="text-muted">{{ comment.Notice_date }}</small>
-              <p>{{ comment.Notice }} <span>({{ comment.Note }}/10)</span></p>
+              <strong>{{ comment.userName }} : {{ comment.Title }}</strong> -
+              <small class="text-muted">{{ comment.Notice_date }}</small>
+              <p>
+                {{ comment.Notice }} <span>({{ comment.Note }}/10)</span>
+              </p>
             </li>
           </ul>
-          <MDBBtn @click="toggleCommentForm" color="primary">Poster un commentaire</MDBBtn>
-          <form v-if="showCommentForm" @submit.prevent="submitComment" class="mt-3">
-            <MDBInput v-model="newComment.Title" label="Titre" type="text" class="mb-3" required />
-            <MDBInput v-model="newComment.Notice" label="Commentaire" type="textarea" class="mb-3" required />
-            <MDBInput v-model="newComment.Note" label="Note (1-10)" type="number" min="1" max="10" class="mb-3" required />
+          <MDBBtn @click="toggleCommentForm" color="primary"
+            >Poster un commentaire</MDBBtn
+          >
+          <form
+            v-if="showCommentForm"
+            @submit.prevent="submitComment"
+            class="mt-3"
+          >
+            <MDBInput
+              v-model="newComment.Title"
+              label="Titre"
+              type="text"
+              class="mb-3"
+              required
+            />
+            <MDBInput
+              v-model="newComment.Notice"
+              label="Commentaire"
+              type="textarea"
+              class="mb-3"
+              required
+            />
+            <MDBInput
+              v-model="newComment.Note"
+              label="Note (1-10)"
+              type="number"
+              min="1"
+              max="10"
+              class="mb-3"
+              required
+            />
             <MDBBtn type="submit" color="success">Envoyer</MDBBtn>
           </form>
         </MDBCol>
@@ -67,7 +109,14 @@ import { ref, watch, onMounted } from "vue";
 import axios from "axios";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
-import { MDBContainer, MDBRow, MDBCol, MDBCard, MDBBtn, MDBInput } from "mdb-vue-ui-kit";
+import {
+  MDBContainer,
+  MDBRow,
+  MDBCol,
+  MDBCard,
+  MDBBtn,
+  MDBInput,
+} from "mdb-vue-ui-kit";
 
 interface Product {
   Name: string;
@@ -119,6 +168,20 @@ const newComment = ref<Comment>({
   Note: 1,
 });
 
+const fetchProductImage = async (productId: number): Promise<string> => {
+  try {
+    const response = await axios.get(
+      `http://127.0.0.1:8000/produit_image?produit_image_id=${productId}&field_name=Id_Product`,
+      { responseType: "blob" }
+    );
+    if (response.data) {
+      return URL.createObjectURL(response.data);
+    }
+  } catch (error) {
+  }
+  return "https://via.placeholder.com/300";
+};
+
 const fetchProduct = async (productId: number) => {
   try {
     const storedProduct = store.getters.getProductById(productId);
@@ -126,12 +189,15 @@ const fetchProduct = async (productId: number) => {
       product.value = storedProduct;
       productActive.value = storedProduct.Active;
     } else {
-      const response = await axios.get(`http://127.0.0.1:8000/products_by_id/?id=${productId}`);
-      const data = response.data;      
+      const response = await axios.get(
+        `http://127.0.0.1:8000/products_by_id/?id=${productId}`
+      );
+      const data = response.data;
+      const image = await fetchProductImage(data.Id_Product);
       product.value = {
         Name: data.Name,
         Description: data.Description,
-        image: data.imageUrl || "https://placehold.co/600x400",
+        image: image,
         quantity: 0,
         price: data.Price_ht,
         Id_Product: data.Id_Product,
@@ -150,9 +216,13 @@ const fetchProduct = async (productId: number) => {
 
 const fetchProducerName = async (productId: number): Promise<void> => {
   try {
-    const giveResponse = await axios.get(`http://127.0.0.1:8000/give/${productId}`);
+    const giveResponse = await axios.get(
+      `http://127.0.0.1:8000/give/${productId}`
+    );
     producerId.value = giveResponse.data.Id_Producers;
-    const userResponse = await axios.get(`http://127.0.0.1:8000/user_by_producer?producer_id=${producerId.value}`);
+    const userResponse = await axios.get(
+      `http://127.0.0.1:8000/user_by_producer?producer_id=${producerId.value}`
+    );
     userId.value = userResponse.data.Id_Users;
     producer.value = `${userResponse.data.F_Name} ${userResponse.data.Name}`;
   } catch (error) {
@@ -162,24 +232,30 @@ const fetchProducerName = async (productId: number): Promise<void> => {
 
 const fetchComments = async (productId: number) => {
   try {
-    const response = await axios.get(`http://127.0.0.1:8000/get_notice_by_id?product=${productId}`);
+    const response = await axios.get(
+      `http://127.0.0.1:8000/get_notice_by_id?product=${productId}`
+    );
     const commentsData = response.data;
 
-    for (const comment of commentsData) {     
-       
-      const giveResponse = await axios.get(`http://127.0.0.1:8000/Give_1/${comment.Id_Notice}`);
+    for (const comment of commentsData) {
+      const giveResponse = await axios.get(
+        `http://127.0.0.1:8000/Give_1/${comment.Id_Notice}`
+      );
       const customerId = giveResponse.data.Id_Casual;
-      const customerResponse = await axios.get(`http://127.0.0.1:8000/customers_by_id?customers=${customerId}`);
+      const customerResponse = await axios.get(
+        `http://127.0.0.1:8000/customers_by_id?customers=${customerId}`
+      );
       const userId = customerResponse.data.Id_Users;
-      const userResponse = await axios.get(`http://127.0.0.1:8000/users/${userId}`);
+      const userResponse = await axios.get(
+        `http://127.0.0.1:8000/users/${userId}`
+      );
       const userName = userResponse.data.F_Name;
 
       comments.value.push({ ...comment, userName });
     }
 
     calculateAverageRating();
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const calculateAverageRating = () => {
@@ -196,7 +272,10 @@ const incrementQuantity = async () => {
     selectedProducts.value.add(product.value.Name);
   }
   product.value.quantity++;
-  localStorage.setItem(`product_${product.value.Id_Product}_quantity`, product.value.quantity.toString());
+  localStorage.setItem(
+    `product_${product.value.Id_Product}_quantity`,
+    product.value.quantity.toString()
+  );
 
   await addOrUpdateCart(product.value.Id_Product, product.value.quantity);
 
@@ -210,7 +289,10 @@ const incrementQuantity = async () => {
 const decrementQuantity = async () => {
   if (product.value.quantity > 0) {
     product.value.quantity--;
-    localStorage.setItem(`product_${product.value.Id_Product}_quantity`, product.value.quantity.toString());
+    localStorage.setItem(
+      `product_${product.value.Id_Product}_quantity`,
+      product.value.quantity.toString()
+    );
 
     await addOrUpdateCart(product.value.Id_Product, product.value.quantity);
 
@@ -245,8 +327,7 @@ const removeProduct = async (productId: number) => {
     await axios.delete(`http://127.0.0.1:8000/linede/${orderId}/${productId}`);
     localStorage.removeItem(`product_${productId}_quantity`);
     store.commit("DECREMENT_CART_ITEM_COUNT");
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const emitSelectedProducts = () => {
@@ -260,7 +341,9 @@ const getUserFromToken = async (): Promise<any> => {
   }
 
   try {
-    const response = await axios.get(`http://127.0.0.1:8000/users_by_token?token=${token}`);
+    const response = await axios.get(
+      `http://127.0.0.1:8000/users_by_token?token=${token}`
+    );
     return response.data;
   } catch (error) {
     return null;
@@ -269,7 +352,6 @@ const getUserFromToken = async (): Promise<any> => {
 
 const getCustomerById = async (customerId: number): Promise<any> => {
   try {
-    
     const response = await axios.get(
       `http://127.0.0.1:8000/user_by_id?customers=${customerId}`
     );
@@ -279,7 +361,10 @@ const getCustomerById = async (customerId: number): Promise<any> => {
   }
 };
 
-const addOrUpdateCart = async (productId: number, quantity: number): Promise<void> => {
+const addOrUpdateCart = async (
+  productId: number,
+  quantity: number
+): Promise<void> => {
   const user = await getUserFromToken();
   if (!user) {
     return;
@@ -303,7 +388,7 @@ const addOrUpdateCart = async (productId: number, quantity: number): Promise<voi
       });
 
       orderId = response.data.Id_Orders;
-      
+
       localStorage.setItem("orderId", orderId);
     } catch (error) {
       return;
@@ -318,8 +403,7 @@ const addOrUpdateCart = async (productId: number, quantity: number): Promise<voi
         Id_Product: productId,
         qte: quantity,
       });
-    } catch (error) {
-    }
+    } catch (error) {}
   } else {
     try {
       await axios.post("http://127.0.0.1:8000/linede/orders", {
@@ -327,13 +411,14 @@ const addOrUpdateCart = async (productId: number, quantity: number): Promise<voi
         Id_Product: productId,
         qte: quantity,
       });
-    } catch (error) {
-    }
+    } catch (error) {}
   }
 };
 
-
-const checkExistingLine = async (orderId: number, productId: number): Promise<any> => {
+const checkExistingLine = async (
+  orderId: number,
+  productId: number
+): Promise<any> => {
   try {
     const response = await axios.get(`http://127.0.0.1:8000/linede/${orderId}`);
     const data = response.data;
@@ -362,7 +447,9 @@ const submitComment = async () => {
 
   const customerId = user.Id_Users;
 
-  const customerResponse = await axios.get(`http://127.0.0.1:8000/user_by_id?customers=${customerId}`);
+  const customerResponse = await axios.get(
+    `http://127.0.0.1:8000/user_by_id?customers=${customerId}`
+  );
   const idCasual = customerResponse.data.Id_Casual;
 
   const payload = {
@@ -373,10 +460,12 @@ const submitComment = async () => {
   };
 
   try {
-    await axios.post(`http://127.0.0.1:8000/given/?id_customer=${idCasual}&product=${product.value.Id_Product}`, payload);
+    await axios.post(
+      `http://127.0.0.1:8000/given/?id_customer=${idCasual}&product=${product.value.Id_Product}`,
+      payload
+    );
     location.reload();
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const goHome = () => {
@@ -407,7 +496,8 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.custom-btn, .custom-logout-btn {
+.custom-btn,
+.custom-logout-btn {
   height: 35px;
   width: 35px;
   display: flex;
@@ -466,5 +556,11 @@ onMounted(async () => {
 .no-results {
   padding: 10px;
   color: #999;
+}
+
+.product-image {
+  width: 100%;
+  height: 300px;
+  object-fit: contain;
 }
 </style>

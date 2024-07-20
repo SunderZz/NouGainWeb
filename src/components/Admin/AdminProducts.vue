@@ -12,9 +12,15 @@
             Menu
           </MDBDropdownToggle>
           <MDBDropdownMenu aria-labelledby="dropdownMenuLink">
-            <MDBDropdownItem tag="router-link" to="/AdminHome">Produits</MDBDropdownItem>
-            <MDBDropdownItem tag="router-link" to="/AdminProducteurs">Producteurs</MDBDropdownItem>
-            <MDBDropdownItem tag="router-link" to="/AdminRecipes">Recettes</MDBDropdownItem>
+            <MDBDropdownItem tag="router-link" to="/AdminHome"
+              >Produits</MDBDropdownItem
+            >
+            <MDBDropdownItem tag="router-link" to="/AdminProducteurs"
+              >Producteurs</MDBDropdownItem
+            >
+            <MDBDropdownItem tag="router-link" to="/AdminRecipes"
+              >Recettes</MDBDropdownItem
+            >
           </MDBDropdownMenu>
         </MDBDropdown>
       </MDBCol>
@@ -24,7 +30,7 @@
     <div class="list-container">
       <MDBRow>
         <MDBCol
-          v-for="(product) in products"
+          v-for="product in products"
           :key="product.id"
           md="12"
           class="mb-3"
@@ -112,22 +118,33 @@ const fetchAdminId = async (): Promise<void> => {
       `http://127.0.0.1:8000/admin/${userId}`
     );
     adminId.value = adminResponse.data.Id_Admin;
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const fetchProducts = async (): Promise<void> => {
   try {
     const response = await axios.get("http://127.0.0.1:8000/products/");
-    products.value = response.data.map((product: any) => ({
-      id: product.Id_Product,
-      photo: product.imageUrl || "https://via.placeholder.com/100",
-      name: product.Name,
-      description: product.Description,
-      active: product.active,
-    }));
-  } catch (error) {
-  }
+    const productsData = response.data;
+    const productPromises = productsData.map(async (product: any) => {
+      let imageUrl = "https://via.placeholder.com/100";
+      try {
+        const imageResponse = await axios.get(
+          `http://127.0.0.1:8000/produit_image?produit_image_id=${product.Id_Product}&field_name=Id_Product`,
+          { responseType: "blob" }
+        );
+        imageUrl = URL.createObjectURL(imageResponse.data);
+      } catch (error) {
+      }
+      return {
+        id: product.Id_Product,
+        photo: imageUrl,
+        name: product.Name,
+        description: product.Description,
+        active: product.active,
+      };
+    });
+    products.value = await Promise.all(productPromises);
+  } catch (error) {}
 };
 
 const approveProduct = async (id: number): Promise<void> => {
@@ -146,8 +163,7 @@ const approveProduct = async (id: number): Promise<void> => {
     if (product) {
       product.active = true;
     }
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const rejectProduct = async (id: number): Promise<void> => {
@@ -166,8 +182,7 @@ const rejectProduct = async (id: number): Promise<void> => {
     if (product) {
       product.active = false;
     }
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 onMounted((): void => {
@@ -180,7 +195,7 @@ onMounted((): void => {
 .product-img {
   width: 100px;
   height: 100px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 5px;
 }
 

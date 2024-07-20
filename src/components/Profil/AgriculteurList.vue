@@ -32,7 +32,6 @@
     </div>
   </MDBContainer>
 </template>
-
 <script setup lang="ts">
 import { ref, onMounted, Ref } from "vue";
 import { useRouter } from "vue-router";
@@ -78,11 +77,12 @@ const fetchProducers = async (): Promise<void> => {
       const user = userResponse.data;
 
       if (user.active) {
+        const userPhoto = await fetchUserPhoto(user.Id_Users);
         activeUsers.push({
           id: user.Id_Users,
           firstName: user.F_Name,
           lastName: user.Name,
-          photo: defaultImage,
+          photo: userPhoto,
           description: producer.description || "Description non disponible",
           objects: [],
         });
@@ -90,7 +90,19 @@ const fetchProducers = async (): Promise<void> => {
     }
 
     users.value = activeUsers;
+  } catch (error) {}
+};
+
+const fetchUserPhoto = async (userId: number): Promise<string> => {
+  try {
+    const imageResponse = await axios.get(
+      `http://127.0.0.1:8000/produit_image/?produit_image_id=${userId}&field_name=Id_Users`,
+      { responseType: "blob" }
+    );
+    const imageUrl = URL.createObjectURL(imageResponse.data);
+    return imageUrl;
   } catch (error) {
+    return defaultImage;
   }
 };
 
@@ -102,7 +114,6 @@ onMounted((): void => {
   fetchProducers();
 });
 </script>
-
 <style scoped>
 .list-container {
   border: 1px solid #ccc;
@@ -120,7 +131,7 @@ onMounted((): void => {
 .user-photo {
   width: 60px;
   height: 60px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 50%;
 }
 

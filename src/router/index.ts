@@ -176,7 +176,6 @@ const isAdmin = async (token: string) => {
     );
     return adminResponse.status === 200;
   } catch (error) {
-
     return false;
   }
 };

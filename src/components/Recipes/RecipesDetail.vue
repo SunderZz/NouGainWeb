@@ -1,5 +1,5 @@
 <template>
-  <MDBContainer fluid class="mt-4" style="min-height: 100vh;">
+  <MDBContainer fluid class="mt-4" style="min-height: 100vh">
     <MDBRow class="mb-4">
       <MDBCol md="6">
         <h1 class="recipe-title">{{ recipe.title }}</h1>
@@ -25,7 +25,6 @@
     </MDBRow>
   </MDBContainer>
 </template>
-
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
@@ -45,31 +44,47 @@ const recipeId = route.params.id as string;
 const recipe = ref<Recipe>({
   title: "",
   description: "",
-  image: "",
+  image: "https://via.placeholder.com/400x300",
   ingredients: [],
   steps: [],
 });
 
 const fetchRecipeDetails = async () => {
   try {
-    const response = await axios.get(`http://127.0.0.1:8000/recipes_id?recipe=${recipeId}`);
+    const response = await axios.get(
+      `http://127.0.0.1:8000/recipes_id?recipe=${recipeId}`
+    );
     const data = response.data;
+
     recipe.value = {
       title: data.Title,
       description: data.description,
-      image: data.image,
-      ingredients: data.ingredient.split('.').map((item: string) => item.trim()),
-      steps: data.Recipe.split('.').map((item: string) => item.trim()),
+      image: data.image ? data.image : "https://via.placeholder.com/400x300",
+      ingredients: data.ingredient
+        .split(".")
+        .map((item: string) => item.trim()),
+      steps: data.Recipe.split(".").map((item: string) => item.trim()),
     };
+
+    try {
+      const imageResponse = await axios.get(
+        `http://127.0.0.1:8000/produit_image/?produit_image_id=${data.Id_Recipes}&field_name=Id_Recipes`,
+        { responseType: "blob" }
+      );
+      const imageUrl = URL.createObjectURL(imageResponse.data);
+      recipe.value.image = imageUrl;
+    } catch (error) {
+      recipe.value.image = "https://via.placeholder.com/400x300";
+    }
   } catch (error) {
   }
 };
 
 onMounted(fetchRecipeDetails);
 </script>
-
 <style scoped>
-body, html {
+body,
+html {
   height: 100%;
   margin: 0;
 }
@@ -88,9 +103,9 @@ body, html {
 
 .recipe-image {
   width: 100%;
-  height: auto;
+  height: 300px;
   border-radius: 10px;
-  object-fit: cover;
+  object-fit: contain;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 

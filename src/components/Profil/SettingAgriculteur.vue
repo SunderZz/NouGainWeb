@@ -16,7 +16,9 @@
                 class="d-none"
                 ref="imageInput"
               />
-              <MDBBtn color="primary" @click="triggerImageUpload">Upload Image</MDBBtn>
+              <MDBBtn color="primary" @click="triggerImageUpload"
+                >Upload Image</MDBBtn
+              >
             </div>
 
             <div class="document-upload-section text-center mb-4">
@@ -26,12 +28,18 @@
                 @change="onDocumentUpload"
                 class="form-control mb-3"
               />
-              <MDBBtn v-if="documentUrl" color="primary" @click="viewDocument">Consulter le document</MDBBtn>
+              <MDBBtn v-if="documentFile" color="primary" @click="viewDocument"
+                >Consulter le document</MDBBtn
+              >
             </div>
 
             <MDBRow>
               <MDBCol md="12" class="mb-3">
-                <MDBInput v-model="form.description" label="Description" type="text" />
+                <MDBInput
+                  v-model="form.description"
+                  label="Description"
+                  type="text"
+                />
               </MDBCol>
               <MDBCol md="6" class="mb-3">
                 <MDBInput v-model="form.firstName" label="Prénom" type="text" />
@@ -49,16 +57,28 @@
                 <MDBInput v-model="form.email" label="Email" type="email" />
               </MDBCol>
               <MDBCol md="6" class="mb-3">
-                <MDBInput v-model="form.postalCode" label="Code Postal" type="text" />
+                <MDBInput
+                  v-model="form.postalCode"
+                  label="Code Postal"
+                  type="text"
+                />
               </MDBCol>
               <MDBCol md="6" class="mb-3">
                 <MDBInput v-model="form.city" label="Ville" type="text" />
               </MDBCol>
               <MDBCol md="6" class="mb-3">
-                <MDBInput v-model="form.password" label="Mot de Passe" type="password" />
+                <MDBInput
+                  v-model="form.password"
+                  label="Mot de Passe"
+                  type="password"
+                />
               </MDBCol>
               <MDBCol md="6" class="mb-3">
-                <MDBInput v-model="form.confirmPassword" label="Confirmer Mot de Passe" type="password" />
+                <MDBInput
+                  v-model="form.confirmPassword"
+                  label="Confirmer Mot de Passe"
+                  type="password"
+                />
               </MDBCol>
             </MDBRow>
             <MDBRow>
@@ -83,7 +103,6 @@
     </MDBRow>
   </MDBContainer>
 </template>
-
 <script setup lang="ts">
 import { ref, onMounted, Ref } from "vue";
 import {
@@ -102,7 +121,7 @@ interface Form {
   firstName: string;
   lastName: string;
   address: string;
-  phone: number;
+  phone: string;
   email: string;
   description: string;
   postalCode: string;
@@ -120,7 +139,7 @@ interface User {
 
 interface Address {
   Adresse: string;
-  Phone: number;
+  Phone: string;
   Creation: string;
   Modification: string;
   Latitude: number;
@@ -149,7 +168,7 @@ const form: Ref<Form> = ref({
   firstName: "",
   lastName: "",
   address: "",
-  phone: 0,
+  phone: "",
   email: "",
   description: "",
   postalCode: "",
@@ -159,8 +178,9 @@ const form: Ref<Form> = ref({
 });
 
 const imagePreview: Ref<string> = ref("https://via.placeholder.com/150");
-const documentUrl: Ref<string | ArrayBuffer | null> = ref(null);
+const documentFile: Ref<File | null> = ref(null);
 const imageInput = ref<HTMLInputElement | null>(null);
+const documentInput = ref<HTMLInputElement | null>(null);
 
 const triggerImageUpload = () => {
   imageInput.value?.click();
@@ -180,17 +200,14 @@ const onImageUpload = (event: Event) => {
 const onDocumentUpload = (event: Event) => {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      documentUrl.value = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
+    documentFile.value = file;
   }
 };
 
 const viewDocument = () => {
-  if (documentUrl.value) {
-    window.open(documentUrl.value as string, "_blank");
+  if (documentFile.value) {
+    const url = URL.createObjectURL(documentFile.value);
+    window.open(url, "_blank");
   }
 };
 
@@ -218,16 +235,13 @@ const submitForm = async () => {
   userPayload.append("password", form.value.password);
   userPayload.append("description", form.value.description);
   userPayload.append("isFarmer", "true");
-  if (documentUrl.value) {
-    const blob = new Blob([documentUrl.value as ArrayBuffer], {
-      type: "application/pdf",
-    });
-    userPayload.append("document", blob, "document.pdf");
+  if (documentFile.value) {
+    userPayload.append("document", documentFile.value);
   }
 
   const addressPayload = new FormData();
   addressPayload.append("Adresse", form.value.address);
-  addressPayload.append("", form.value.phone);
+  addressPayload.append("Phone", form.value.phone);
   addressPayload.append("code_postal", form.value.postalCode);
   addressPayload.append("city", form.value.city);
 
@@ -293,6 +307,20 @@ const submitForm = async () => {
       );
     }
 
+    if (imageInput.value?.files?.[0]) {
+      const imageData = new FormData();
+      imageData.append("product_id", user.Id_Users.toString());
+      imageData.append("field_name", "Id_Users");
+      imageData.append("nom", form.value.firstName);
+      imageData.append("file", imageInput.value.files[0]);
+
+      await axios.post(`http://127.0.0.1:8000/produit_image/`, imageData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    }
+
     localStorage.clear();
     router.push("/");
   } catch (error) {
@@ -304,7 +332,7 @@ const resetForm = () => {
     firstName: "",
     lastName: "",
     address: "",
-    phone: 0,
+    phone: "",
     email: "",
     description: "",
     postalCode: "",
@@ -313,7 +341,7 @@ const resetForm = () => {
     confirmPassword: "",
   };
   imagePreview.value = "https://via.placeholder.com/150";
-  documentUrl.value = null;
+  documentFile.value = null;
 };
 
 const fetchUserData = async () => {
@@ -383,7 +411,7 @@ onMounted(() => {
 .profile-image {
   width: 150px;
   height: 150px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 50%;
   border: 2px solid #ddd;
 }

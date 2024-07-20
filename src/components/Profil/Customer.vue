@@ -9,7 +9,7 @@
           <img
             :src="customers.image"
             class="customer-img mx-auto d-block"
-            alt="Customers image"
+            alt="Customer image"
           />
         </MDBCard>
         <div class="text-center mt-3 customer-info">
@@ -27,17 +27,11 @@
     </div>
   </MDBContainer>
 </template>
-
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
-import {
-  MDBContainer,
-  MDBCard,
-  MDBBtn,
-  MDBIcon,
-} from "mdb-vue-ui-kit";
+import { MDBContainer, MDBCard, MDBBtn, MDBIcon } from "mdb-vue-ui-kit";
 
 interface Customer {
   name: string;
@@ -48,7 +42,7 @@ interface Customer {
 const customers = ref<Customer>({
   name: "",
   description: "",
-  image: "",
+  image: "https://mdbootstrap.com/img/new/standard/nature/184.webp",
 });
 
 const router = useRouter();
@@ -65,20 +59,30 @@ const fetchUserData = async () => {
 
     customers.value.name = user.Name || "";
     customers.value.description = user.Description || "";
-    customers.value.image = user.image || "https://mdbootstrap.com/img/new/standard/nature/184.webp";
+
+    try {
+      const imageResponse = await axios.get(
+        `http://127.0.0.1:8000/produit_image/?produit_image_id=${user.Id_Users}&field_name=Id_Users`,
+        { responseType: "blob" }
+      );
+      const imageUrl = URL.createObjectURL(imageResponse.data);
+      customers.value.image = imageUrl;
+    } catch (error) {
+      customers.value.image =
+        "https://mdbootstrap.com/img/new/standard/nature/184.webp";
+    }
   } catch (error) {
   }
 };
 
 const navigateToOrderHistory = () => {
-  router.push({ path: '/OrderHistory' });
+  router.push({ path: "/OrderHistory" });
 };
 
 onMounted(() => {
   fetchUserData();
 });
 </script>
-
 <style scoped>
 .background-image-container {
   background-image: url("https://mdbootstrap.com/img/new/standard/nature/189.webp");
@@ -117,7 +121,7 @@ onMounted(() => {
 .customer-img {
   width: 150px;
   height: 150px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 50%;
   border: 5px solid white;
 }

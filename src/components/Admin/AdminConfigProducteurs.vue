@@ -22,18 +22,10 @@
         <div class="products-section">
           <h5>Produits en vente</h5>
           <div class="list-container">
-            <MDBRow
-              v-for="(product, index) in farmer.products"
-              :key="index"
-              class="mb-2"
-            >
+            <MDBRow v-for="(product, index) in farmer.products" :key="index" class="mb-2">
               <MDBCol md="4">
                 <a :href="`#/AdminConfigProducts/${product.id}`">
-                  <img
-                    :src="product.photo"
-                    alt="Product photo"
-                    class="product-img"
-                  />
+                  <img :src="product.photo" alt="Product photo" class="product-img" />
                 </a>
               </MDBCol>
               <MDBCol md="8">
@@ -48,17 +40,13 @@
 
     <MDBRow class="mt-4">
       <MDBCol md="4" class="text-center mb-3">
-        <MDBBtn
-          :color="farmer.active ? 'primary' : 'secondary'"
-          @click="toggleActive"
-        >
+        <MDBBtn :color="farmer.active ? 'primary' : 'secondary'" @click="toggleActive">
           {{ farmer.active ? "Actif" : "Inactif" }}
         </MDBBtn>
       </MDBCol>
     </MDBRow>
   </MDBContainer>
 </template>
-
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import axios from "axios";
@@ -110,6 +98,7 @@ const farmer = ref<Farmer>({
   phone: "",
 });
 const adminId = ref<number | null>(null);
+const defaultImage = "https://via.placeholder.com/150";
 
 const fetchAdminId = async (): Promise<void> => {
   try {
@@ -117,17 +106,24 @@ const fetchAdminId = async (): Promise<void> => {
     if (!token) {
       throw new Error("Token not found");
     }
-    const userResponse = await axios.get(`http://127.0.0.1:8000/users_by_token?token=${token}`);
+    const userResponse = await axios.get(
+      `http://127.0.0.1:8000/users_by_token?token=${token}`
+    );
     const userId = userResponse.data.Id_Users;
-    const adminResponse = await axios.get(`http://127.0.0.1:8000/admin/${userId}`);
+    const adminResponse = await axios.get(
+      `http://127.0.0.1:8000/admin/${userId}`
+    );
     adminId.value = adminResponse.data.Id_Admin;
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
-const fetchAddressId = async (userId: number): Promise<AddressResponse | null> => {
+const fetchAddressId = async (
+  userId: number
+): Promise<AddressResponse | null> => {
   try {
-    const response = await axios.get(`http://127.0.0.1:8000/adresses_types_by_user/${userId}`);
+    const response = await axios.get(
+      `http://127.0.0.1:8000/adresses_types_by_user/${userId}`
+    );
     return response.data;
   } catch (error) {
     return null;
@@ -136,8 +132,10 @@ const fetchAddressId = async (userId: number): Promise<AddressResponse | null> =
 
 const fetchPostalCode = async (addressId: number): Promise<number | null> => {
   try {
-    const response = await axios.get(`http://127.0.0.1:8000/located/${addressId}`);
-    
+    const response = await axios.get(
+      `http://127.0.0.1:8000/located/${addressId}`
+    );
+
     return response.data.Id_Code_Postal;
   } catch (error) {
     return null;
@@ -146,17 +144,22 @@ const fetchPostalCode = async (addressId: number): Promise<number | null> => {
 
 const fetchCity = async (postalCode: number): Promise<string | null> => {
   try {
-    
-    const response = await axios.get(`http://127.0.0.1:8000/code_postal_city/?code_id=${postalCode}`);
+    const response = await axios.get(
+      `http://127.0.0.1:8000/code_postal_city/?code_id=${postalCode}`
+    );
     return response.data[0].Name;
   } catch (error) {
     return null;
   }
 };
 
-const fetchAddressDetails = async (addressId: number): Promise<{ Adresse: string; Phone: string } | null> => {
+const fetchAddressDetails = async (
+  addressId: number
+): Promise<{ Adresse: string; Phone: string } | null> => {
   try {
-    const response = await axios.get(`http://127.0.0.1:8000/users/${addressId}/addresses`);
+    const response = await axios.get(
+      `http://127.0.0.1:8000/users/${addressId}/addresses`
+    );
     return response.data[0];
   } catch (error) {
     return null;
@@ -165,10 +168,14 @@ const fetchAddressDetails = async (addressId: number): Promise<{ Adresse: string
 
 const fetchFarmer = async (): Promise<void> => {
   try {
-    const response = await axios.get(`http://127.0.0.1:8000/producers_user?producers=${route.params.id}`);
+    const response = await axios.get(
+      `http://127.0.0.1:8000/producers_user?producers=${route.params.id}`
+    );
     const producer = response.data;
-    
-    const userResponse = await axios.get(`http://127.0.0.1:8000/users/${producer.Id_Users}`);
+
+    const userResponse = await axios.get(
+      `http://127.0.0.1:8000/users/${producer.Id_Users}`
+    );
     const userDetails = userResponse.data;
 
     const addressId = await fetchAddressId(userDetails.Id_Users);
@@ -178,33 +185,41 @@ const fetchFarmer = async (): Promise<void> => {
     let city = null;
     if (addressId) {
       postalCode = await fetchPostalCode(addressId.Id_Users_adresses);
-      
-      if (postalCode !== null) {        
+
+      if (postalCode !== null) {
         city = await fetchCity(postalCode);
       }
       addressDetails = await fetchAddressDetails(addressId.Id_Users);
     }
 
-    const giveResponse = await axios.get("http://127.0.0.1:8000/give_producers", {
-      params: { give_id: route.params.id },
-    });
+    const giveResponse = await axios.get(
+      "http://127.0.0.1:8000/give_producers",
+      {
+        params: { give_id: route.params.id },
+      }
+    );
 
-    const productIds = giveResponse.data.map((product: any) => product.Id_Product);
+    const productIds = giveResponse.data.map(
+      (product: any) => product.Id_Product
+    );
     const productDetails: Product[] = [];
     for (const productId of productIds) {
-      const productResponse = await axios.get("http://127.0.0.1:8000/products_by_id/", {
-        params: { id: productId },
-      });
+      const productResponse = await axios.get(
+        "http://127.0.0.1:8000/products_by_id/",
+        {
+          params: { id: productId },
+        }
+      );
       productDetails.push({
         id: productResponse.data.Id_Product,
-        photo: productResponse.data.imageUrl || "https://via.placeholder.com/100",
+        photo: await fetchProductImage(productId),
         name: productResponse.data.Name,
         description: productResponse.data.Description,
       });
     }
 
     farmer.value = {
-      photo: producer.Photo || "https://via.placeholder.com/150",
+      photo: await fetchUserPhoto(producer.Id_Users),
       firstName: userDetails.F_Name,
       lastName: userDetails.Name,
       birthDate: userDetails.BirthDate,
@@ -218,7 +233,32 @@ const fetchFarmer = async (): Promise<void> => {
       address: addressDetails ? addressDetails.Adresse : "",
       phone: addressDetails ? addressDetails.Phone : "",
     };
+  } catch (error) {}
+};
+
+const fetchUserPhoto = async (userId: number): Promise<string> => {
+  try {
+    const imageResponse = await axios.get(
+      `http://127.0.0.1:8000/produit_image/?produit_image_id=${userId}&field_name=Id_Users`,
+      { responseType: "blob" }
+    );
+    const imageUrl = URL.createObjectURL(imageResponse.data);
+    return imageUrl;
   } catch (error) {
+    return defaultImage;
+  }
+};
+
+const fetchProductImage = async (productId: number): Promise<string> => {
+  try {
+    const imageResponse = await axios.get(
+      `http://127.0.0.1:8000/produit_image/?produit_image_id=${productId}&field_name=Id_Product`,
+      { responseType: "blob" }
+    );
+    const imageUrl = URL.createObjectURL(imageResponse.data);
+    return imageUrl;
+  } catch (error) {
+    return defaultImage;
   }
 };
 
@@ -240,8 +280,7 @@ const toggleActive = async (): Promise<void> => {
     );
 
     farmer.value.active = !farmer.value.active;
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 onMounted(() => {
@@ -249,7 +288,6 @@ onMounted(() => {
   fetchFarmer();
 });
 </script>
-
 <style scoped>
 .farmer-profile {
   display: flex;
@@ -260,7 +298,7 @@ onMounted(() => {
 .farmer-img {
   width: 150px;
   height: 150px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 5px;
 }
 
@@ -281,7 +319,7 @@ onMounted(() => {
 .product-img {
   width: 100px;
   height: 100px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 5px;
 }
 </style>

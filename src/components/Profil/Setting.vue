@@ -16,9 +16,9 @@
                 class="d-none"
                 ref="imageInput"
               />
-              <MDBBtn color="primary" @click="triggerImageUpload"
-                >Upload Image</MDBBtn
-              >
+              <MDBBtn color="primary" @click="triggerImageUpload">
+                Upload Image
+              </MDBBtn>
             </div>
             <MDBRow>
               <MDBCol md="6" class="mb-3">
@@ -37,22 +37,14 @@
                 <MDBInput v-model="form.email" label="Email" type="email" />
               </MDBCol>
               <MDBCol md="6" class="mb-3">
-                <MDBInput
-                  v-model="form.postalCode"
-                  label="Code Postal"
-                  type="text"
-                />
+                <MDBInput v-model="form.postalCode" label="Code Postal" type="text" />
               </MDBCol>
               <MDBCol md="6" class="mb-3">
                 <MDBInput v-model="form.city" label="Ville" type="text" />
               </MDBCol>
               <MDBCol md="6" class="mb-3"> </MDBCol>
               <MDBCol md="6" class="mb-3">
-                <MDBInput
-                  v-model="form.password"
-                  label="Mot de Passe"
-                  type="password"
-                />
+                <MDBInput v-model="form.password" label="Mot de Passe" type="password" />
               </MDBCol>
               <MDBCol md="6" class="mb-3">
                 <MDBInput
@@ -76,7 +68,6 @@
     </MDBRow>
   </MDBContainer>
 </template>
-
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import {
@@ -104,14 +95,19 @@ const form = ref({
 });
 
 const imagePreview = ref("https://via.placeholder.com/150");
+const imageFile = ref<File | null>(null);
+const imageInput = ref<HTMLInputElement | null>(null); 
 
 const triggerImageUpload = () => {
-  (refs.imageInput as HTMLInputElement).click();
+  if (imageInput.value) {
+    imageInput.value.click();
+  }
 };
 
 const onImageUpload = (event: Event) => {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (file) {
+    imageFile.value = file;
     const reader = new FileReader();
     reader.onload = (e) => {
       imagePreview.value = e.target?.result as string;
@@ -157,7 +153,7 @@ const submitForm = async () => {
     const response = await axios.get("http://127.0.0.1:8000/users_by_token", {
       params: { token },
     });
-    const user = response.data;    
+    const user = response.data;
     await axios.put(
       `http://127.0.0.1:8000/users/${user.Id_Users}`,
       userPayload,
@@ -172,7 +168,7 @@ const submitForm = async () => {
       `http://127.0.0.1:8000/adresses_types_by_user/${user.Id_Users}`
     );
     const users_adresses = users_adressesResponse.data;
-    
+
     if (users_adresses) {
       const addressId = users_adresses.Id_Users_adresses;
 
@@ -212,6 +208,20 @@ const submitForm = async () => {
       );
     }
 
+    if (imageFile.value) {
+      const imageData = new FormData();
+      imageData.append("product_id", user.Id_Users.toString());
+      imageData.append("field_name", "Id_Users");
+      imageData.append("nom", form.value.firstName);
+      imageData.append("file", imageFile.value);
+
+      await axios.post(`http://127.0.0.1:8000/produit_image/`, imageData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    }
+
     localStorage.clear();
     router.push("/");
   } catch (error) {
@@ -231,13 +241,13 @@ const fetchUserData = async () => {
     form.value.firstName = user.F_Name;
     form.value.lastName = user.Name;
     form.value.email = user.Mail;
-    
+
     const addressResponse = await axios.get(
       `http://127.0.0.1:8000/adresses_types_by_user/${user.Id_Users}`
     );
-    
+
     const adresse_id = addressResponse.data;
-    
+
     const adresseInformations = await axios.get(
       `http://127.0.0.1:8000/adresse_of_user?adresse_id=${adresse_id.Id_Users_adresses}`
     );
@@ -267,6 +277,17 @@ const fetchUserData = async () => {
     form.value.phone = userAddress[0].Phone;
     form.value.postalCode = codePostal.code_postal;
     form.value.city = city.Name;
+
+    try {
+      const imageResponse = await axios.get(
+        `http://127.0.0.1:8000/produit_image/?produit_image_id=${user.Id_Users}&field_name=Id_Users`,
+        { responseType: "blob" }
+      );
+      const imageUrl = URL.createObjectURL(imageResponse.data);
+      imagePreview.value = imageUrl;
+    } catch (error) {
+      imagePreview.value = "https://via.placeholder.com/150";
+    }
   } catch (error) {
   }
 };
@@ -275,7 +296,6 @@ onMounted(() => {
   fetchUserData();
 });
 </script>
-
 <style scoped>
 .image-upload-section {
   display: flex;
@@ -286,7 +306,7 @@ onMounted(() => {
 .profile-image {
   width: 150px;
   height: 150px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 50%;
   border: 2px solid #ddd;
 }

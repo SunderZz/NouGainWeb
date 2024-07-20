@@ -24,7 +24,6 @@
     </MDBRow>
   </MDBContainer>
 </template>
-
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import axios from "axios";
@@ -42,14 +41,26 @@ const recipes = ref<Recipe[]>([]);
 const fetchRecipes = async () => {
   try {
     const response = await axios.get("http://127.0.0.1:8000/recipes/");
-    recipes.value = response.data;
+    const data = response.data;
+    for (const recipe of data) {
+      try {
+        const imageResponse = await axios.get(
+          `http://127.0.0.1:8000/produit_image/?produit_image_id=${recipe.Id_Recipes}&field_name=Id_Recipes`,
+          { responseType: "blob" }
+        );
+        const imageUrl = URL.createObjectURL(imageResponse.data);
+        recipe.image = imageUrl;
+      } catch (error) {
+        recipe.image = "https://via.placeholder.com/150";
+      }
+    }
+    recipes.value = data;
   } catch (error) {
   }
 };
 
 onMounted(fetchRecipes);
 </script>
-
 <style scoped>
 .recipe-card-link {
   text-decoration: none;
@@ -72,7 +83,7 @@ onMounted(fetchRecipes);
 .recipe-image {
   width: 150px;
   height: 150px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 10px;
 }
 

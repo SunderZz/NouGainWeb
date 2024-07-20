@@ -199,8 +199,7 @@ const createAccount = async (): Promise<void> => {
         router.push("/");
       }, 5000);
     }
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 </script>
 

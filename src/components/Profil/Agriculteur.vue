@@ -1,7 +1,11 @@
 <template>
   <MDBContainer fluid class="mt-4">
     <div class="background-image-container position-relative">
-      <a href="#/SettingAgriculteur" class="settings-icon-link" v-if="isProducer">
+      <a
+        href="#/SettingAgriculteur"
+        class="settings-icon-link"
+        v-if="isProducer"
+      >
         <MDBIcon fas icon="cog" class="settings-icon" />
       </a>
       <div class="profile-container">
@@ -12,9 +16,13 @@
             alt="Profile image"
           />
           <MDBCardBody class="text-center">
-            <MDBCardTitle>{{ isProducer ? farmer.name : customer.name }}</MDBCardTitle>
+            <MDBCardTitle>{{
+              isProducer ? farmer.name : customer.name
+            }}</MDBCardTitle>
             <br />
-            <MDBCardText>{{ isProducer ? farmer.description : customer.description }}</MDBCardText>
+            <MDBCardText>{{
+              isProducer ? farmer.description : customer.description
+            }}</MDBCardText>
           </MDBCardBody>
         </MDBCard>
       </div>
@@ -61,7 +69,6 @@
     </MDBRow>
   </MDBContainer>
 </template>
-
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import {
@@ -77,7 +84,6 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import axios from "axios";
-import Login from "../Connection/Login.vue";
 
 interface Product {
   Name: string;
@@ -112,13 +118,13 @@ const isProducer = ref<boolean>(false);
 const farmer = ref<Farmer>({
   name: "",
   description: "",
-  image: "",
+  image: "https://via.placeholder.com/150",
   products: [],
 });
 const customer = ref<Customer>({
   name: "",
   description: "",
-  image: "",
+  image: "https://via.placeholder.com/150",
 });
 const addresses = ref<Address[]>([]);
 
@@ -129,45 +135,91 @@ const fetchUserData = async () => {
   }
 
   try {
-    const userResponse = await axios.get("http://127.0.0.1:8000/users_by_token", {
-      params: { token },
-    });
+    const userResponse = await axios.get(
+      "http://127.0.0.1:8000/users_by_token",
+      {
+        params: { token },
+      }
+    );
 
     const userId = userResponse.data.Id_Users;
-    
-    const addressResponse = await axios.get(`http://127.0.0.1:8000/users/${userId}/addresses`);
+
+    const addressResponse = await axios.get(
+      `http://127.0.0.1:8000/users/${userId}/addresses`
+    );
     addresses.value = addressResponse.data;
 
     try {
-      const producerResponse = await axios.get(`http://127.0.0.1:8000/producers_by_user/${userId}`);
+      const producerResponse = await axios.get(
+        `http://127.0.0.1:8000/producers_by_user/${userId}`
+      );
       isProducer.value = true;
-      
+
       const producerId = producerResponse.data.Id_Producers;
 
-      const giveResponse = await axios.get("http://127.0.0.1:8000/give_producers", {
-        params: { give_id: producerId },
-      });
+      const giveResponse = await axios.get(
+        "http://127.0.0.1:8000/give_producers",
+        {
+          params: { give_id: producerId },
+        }
+      );
 
       const productIds = giveResponse.data.map((give: any) => give.Id_Product);
 
       const productDetails = [];
       for (const productId of productIds) {
-        const productResponse = await axios.get("http://127.0.0.1:8000/products_by_id/", {
-          params: { id: productId },
-        });
-        productDetails.push(productResponse.data);
+        const productResponse = await axios.get(
+          "http://127.0.0.1:8000/products_by_id/",
+          {
+            params: { id: productId },
+          }
+        );
+        const product = productResponse.data;
+
+        try {
+          const productImageResponse = await axios.get(
+            `http://127.0.0.1:8000/produit_image/?produit_image_id=${product.Id_Product}&field_name=Id_Product`,
+            { responseType: "blob" }
+          );
+          const productImageUrl = URL.createObjectURL(productImageResponse.data);
+          product.image = productImageUrl;
+        } catch (error) {
+          product.image = "https://via.placeholder.com/150";
+        }
+
+        productDetails.push(product);
       }
 
       farmer.value.name = userResponse.data.Name;
       farmer.value.description = producerResponse.data.description;
-      farmer.value.image = userResponse.data.image;
+
+      try {
+        const imageResponse = await axios.get(
+          `http://127.0.0.1:8000/produit_image/?produit_image_id=${userId}&field_name=Id_Users`,
+          { responseType: "blob" }
+        );
+        const imageUrl = URL.createObjectURL(imageResponse.data);
+        farmer.value.image = imageUrl;
+      } catch (error) {
+        farmer.value.image = "https://via.placeholder.com/150";
+      }
+
       farmer.value.products = productDetails;
     } catch (producerError) {
       isProducer.value = false;
 
       customer.value.name = userResponse.data.Name || "";
       customer.value.description = userResponse.data.Description || "";
-      customer.value.image = userResponse.data.image || "https://mdbootstrap.com/img/new/standard/nature/184.webp";
+      try {
+        const imageResponse = await axios.get(
+          `http://127.0.0.1:8000/produit_image/?produit_image_id=${userId}&field_name=Id_Users`,
+          { responseType: "blob" }
+        );
+        const imageUrl = URL.createObjectURL(imageResponse.data);
+        customer.value.image = imageUrl;
+      } catch (error) {
+        customer.value.image = "https://via.placeholder.com/150";
+      }
     }
   } catch (error) {
   }
@@ -175,8 +227,15 @@ const fetchUserData = async () => {
 
 onMounted(() => {
   fetchUserData().then(() => {
-    if (addresses.value.length > 0 && addresses.value[0].Latitude && addresses.value[0].Longitude) {
-      const coordinates = [addresses.value[0].Latitude, addresses.value[0].Longitude];
+    if (
+      addresses.value.length > 0 &&
+      addresses.value[0].Latitude &&
+      addresses.value[0].Longitude
+    ) {
+      const coordinates = [
+        addresses.value[0].Latitude,
+        addresses.value[0].Longitude,
+      ];
       const map = L.map("map").setView(coordinates, 13);
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -191,7 +250,6 @@ onMounted(() => {
   });
 });
 </script>
-
 <style scoped>
 .background-image-container {
   background-image: url("https://mdbootstrap.com/img/new/standard/nature/189.webp");
@@ -220,7 +278,7 @@ onMounted(() => {
 .farmer-img {
   width: 150px;
   height: 150px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 50%;
   border: 5px solid white;
 }
@@ -255,7 +313,8 @@ onMounted(() => {
 
 .product-img {
   width: 100px;
-  height: auto;
+  height: 100px;
+  object-fit: contain;
 }
 
 .additional-map {

@@ -31,10 +31,14 @@
               />
             </MDBCol>
             <MDBCol md="2">
-              <MDBBtn color="danger" @click="removeIngredient(index)">Supprimer</MDBBtn>
+              <MDBBtn color="danger" @click="removeIngredient(index)"
+                >Supprimer</MDBBtn
+              >
             </MDBCol>
           </MDBRow>
-          <MDBBtn color="primary" @click="addIngredient">Ajouter un ingrédient</MDBBtn>
+          <MDBBtn color="primary" @click="addIngredient"
+            >Ajouter un ingrédient</MDBBtn
+          >
         </div>
 
         <div class="mb-3">
@@ -45,14 +49,12 @@
             class="mb-2 align-items-center"
           >
             <MDBCol md="10">
-              <MDBInput
-                v-model="stepsList[index]"
-                label="Étape"
-                type="text"
-              />
+              <MDBInput v-model="stepsList[index]" label="Étape" type="text" />
             </MDBCol>
             <MDBCol md="2">
-              <MDBBtn color="danger" @click="removeStep(index)">Supprimer</MDBBtn>
+              <MDBBtn color="danger" @click="removeStep(index)"
+                >Supprimer</MDBBtn
+              >
             </MDBCol>
           </MDBRow>
           <MDBBtn color="primary" @click="addStep">Ajouter une étape</MDBBtn>
@@ -73,7 +75,9 @@
             class="d-none"
             ref="imageInput"
           />
-          <MDBBtn color="primary" @click="triggerImageUpload">Ajouter une image</MDBBtn>
+          <MDBBtn color="primary" @click="triggerImageUpload"
+            >Ajouter une image</MDBBtn
+          >
         </div>
       </MDBCol>
     </MDBRow>
@@ -180,17 +184,26 @@ const onImageUpload = (event: Event) => {
 
 const fetchRecipe = async () => {
   try {
-    const response = await axios.get(`http://127.0.0.1:8000/recipes_id?recipe=${route.params.id}`);
+    const response = await axios.get(
+      `http://127.0.0.1:8000/recipes_id?recipe=${route.params.id}`
+    );
     const data = response.data;
     recipe.value.title = data.Title;
     recipe.value.description = data.description;
-    ingredientsList.value = data.ingredient.split('.');
-    stepsList.value = data.Recipe.split('.');
+    ingredientsList.value = data.ingredient.split(".");
+    stepsList.value = data.Recipe.split(".");
     recipe.value.active = data.active;
     recipe.value.Id_Recipes = data.Id_Recipes;
 
-    if (data.imageUrl) {
-      imagePreview.value = data.imageUrl;
+    try {
+      const imageResponse = await axios.get(
+        `http://127.0.0.1:8000/produit_image/?produit_image_id=${data.Id_Recipes}&field_name=Id_Recipes`,
+        { responseType: "blob" }
+      );
+      const imageUrl = URL.createObjectURL(imageResponse.data);
+      imagePreview.value = imageUrl;
+    } catch (error) {
+      imagePreview.value = "https://via.placeholder.com/200";
     }
   } catch (error) {
   }
@@ -199,8 +212,8 @@ const fetchRecipe = async () => {
 const saveRecipe = async () => {
   await fetchAdminId();
 
-  recipe.value.ingredient = ingredientsList.value.join('.');
-  recipe.value.steps = stepsList.value.join('.');
+  recipe.value.ingredient = ingredientsList.value.join(".");
+  recipe.value.steps = stepsList.value.join(".");
 
   const payload = {
     description: recipe.value.description,
@@ -211,11 +224,31 @@ const saveRecipe = async () => {
   };
 
   try {
-    await axios.put(`http://127.0.0.1:8000/admin/${recipe.value.Id_Recipes}/modify_recipes?admin_id=${adminId.value}`, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    await axios.put(
+      `http://127.0.0.1:8000/admin/${recipe.value.Id_Recipes}/modify_recipes?admin_id=${adminId.value}`,
+      payload,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (recipe.value.image) {
+      const imagePayload = new FormData();
+      imagePayload.append("product_id", recipe.value.Id_Recipes.toString());
+      imagePayload.append("field_name", "Id_Recipes");
+      imagePayload.append("nom", recipe.value.title);
+      imagePayload.append("file", recipe.value.image);
+
+      await axios.post(`http://127.0.0.1:8000/produit_image/`, imagePayload, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    }
+
+    router.push("/AdminRecipes");
   } catch (error) {
   }
 };
@@ -228,9 +261,12 @@ const deleteRecipe = async () => {
   await fetchAdminId();
 
   try {
-    await axios.delete(`http://127.0.0.1:8000/admin/recipes/${recipe.value.Id_Recipes}`, {
-      params: { admin_id: adminId.value }
-    });
+    await axios.delete(
+      `http://127.0.0.1:8000/admin/recipes/${recipe.value.Id_Recipes}`,
+      {
+        params: { admin_id: adminId.value },
+      }
+    );
     router.push("/AdminRecipes");
   } catch (error) {
   }
@@ -247,9 +283,9 @@ onMounted(() => {
 }
 
 .recipe-image {
-  width: 200px;
+  width: 100%;
   height: 200px;
-  object-fit: cover;
+  object-fit: fill;
   cursor: pointer;
   border-radius: 5px;
 }

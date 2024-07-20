@@ -10,8 +10,11 @@
       </MDBCol>
       <MDBCol md="8">
         <h3>{{ product.name }}</h3>
-        <p>Producteur : 
-          <router-link :to="`/AdminConfigProducteurs/${product.producerId}`">{{ product.producer }}</router-link>
+        <p>
+          Producteur :
+          <router-link :to="`/AdminConfigProducteurs/${product.producerId}`">{{
+            product.producer
+          }}</router-link>
         </p>
         <p>Prix : {{ product.price }} €</p>
       </MDBCol>
@@ -80,15 +83,20 @@ const fetchAdminId = async (): Promise<void> => {
       `http://127.0.0.1:8000/admin/${userId}`
     );
     adminId.value = adminResponse.data.Id_Admin;
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
-const fetchProducerName = async (productId: number): Promise<{ name: string; id: number }> => {
-  try {    
-    const giveResponse = await axios.get(`http://127.0.0.1:8000/give/${productId}`);
+const fetchProducerName = async (
+  productId: number
+): Promise<{ name: string; id: number }> => {
+  try {
+    const giveResponse = await axios.get(
+      `http://127.0.0.1:8000/give/${productId}`
+    );
     const producerId: number = giveResponse.data.Id_Producers;
-    const userResponse = await axios.get(`http://127.0.0.1:8000/user_by_producer?producer_id=${producerId}`);    
+    const userResponse = await axios.get(
+      `http://127.0.0.1:8000/user_by_producer?producer_id=${producerId}`
+    );
     const producerName: string = `${userResponse.data.F_Name} ${userResponse.data.Name}`;
     return { name: producerName, id: producerId };
   } catch (error) {
@@ -103,8 +111,13 @@ const fetchProduct = async (): Promise<void> => {
     );
     const data = response.data;
     const producer = await fetchProducerName(route.params.id);
+    const imageResponse = await axios.get(
+      `http://127.0.0.1:8000/produit_image?produit_image_id=${route.params.id}&field_name=Id_Product`,
+      { responseType: "blob" }
+    );
+    const imageUrl = URL.createObjectURL(imageResponse.data);
     product.value = {
-      photo: data.imageUrl || "https://via.placeholder.com/150",
+      photo: imageUrl || "https://via.placeholder.com/150",
       name: data.Name,
       producer: producer.name,
       producerId: producer.id,
@@ -112,8 +125,7 @@ const fetchProduct = async (): Promise<void> => {
       description: data.Description,
       active: data.active,
     };
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const toggleActive = async (): Promise<void> => {
@@ -131,8 +143,7 @@ const toggleActive = async (): Promise<void> => {
       },
     });
     product.value.active = newActiveStatus;
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 onMounted(() => {
@@ -147,5 +158,6 @@ onMounted(() => {
   max-width: 300px;
   height: auto;
   border-radius: 5px;
+  object-fit: contain;
 }
 </style>

@@ -23,7 +23,9 @@
         :class="{ active: index === currentIndex }"
         @click="goToDetail(item.id)"
       >
-        <img :src="item.src" :alt="item.alt" class="d-block w-100" />
+        <div class="image-container">
+          <img :src="item.src" :alt="item.alt" class="product-image" />
+        </div>
       </div>
     </div>
     <button class="carousel-control prev" @click="prev">‹</button>
@@ -38,7 +40,6 @@ import axios from "axios";
 
 interface Product {
   Id_Product: number;
-  imageUrl: string;
   Name: string;
   Active: boolean;
 }
@@ -55,22 +56,37 @@ export default {
     const currentIndex = ref<number>(0);
     const router = useRouter();
 
+    const fetchProductImage = async (productId: number): Promise<string> => {
+      try {
+        const response = await axios.get(
+          `http://127.0.0.1:8000/produit_image?produit_image_id=${productId}&field_name=Id_Product`,
+          { responseType: "blob" }
+        );
+        if (response.data) {
+          return URL.createObjectURL(response.data);
+        }
+      } catch (error) {
+      }
+      return "https://via.placeholder.com/300";
+    };
+
     const fetchProducts = async () => {
       try {
         const response = await axios.get<Product[]>(
           "http://127.0.0.1:8000/products_discount/"
         );
         const products = response.data;
-        
-        items9.value = products
-          .filter(product => product.Active)
-          .map((product) => ({
-            id: product.Id_Product,
-            src: product.imageUrl || "https://placehold.co/600x400",
-            alt: product.Name,
-          }));
-      } catch (error) {
-      }
+
+        items9.value = await Promise.all(
+          products
+            .filter((product) => product.Active)
+            .map(async (product) => ({
+              id: product.Id_Product,
+              src: await fetchProductImage(product.Id_Product),
+              alt: product.Name,
+            }))
+        );
+      } catch (error) {}
     };
 
     const goToDetail = (id: number) => {
@@ -101,7 +117,7 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
 .carousel-container {
   width: 50%;
   margin: 0 auto;
@@ -136,5 +152,18 @@ export default {
 }
 .carousel-control.next {
   right: 10px;
+}
+.image-container {
+  width: 100%;
+  height: 300px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+.product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; 
 }
 </style>

@@ -14,20 +14,38 @@
                 type="file"
                 @change="onImageUpload"
                 class="d-none"
-                ref="imageInput"
+                ref="imageInputRef"
               />
-              <MDBBtn color="primary" @click="triggerImageUpload">Upload Image</MDBBtn>
+              <MDBBtn color="primary" @click="triggerImageUpload"
+                >Upload Image</MDBBtn
+              >
             </div>
 
             <MDBRow>
+              <MDBCol md="12" class="mb-3">
+                <MDBInput
+                  v-model="form.productName"
+                  label="Nom du produit"
+                  type="text"
+                />
+              </MDBCol>
               <MDBCol md="6" class="mb-3">
                 <MDBInput v-model="form.name" label="Nom" type="text" />
               </MDBCol>
               <MDBCol md="12" class="mb-3">
-                <MDBInput v-model="form.description" label="Description" type="textarea" />
+                <MDBInput
+                  v-model="form.description"
+                  label="Description"
+                  type="textarea"
+                />
               </MDBCol>
               <MDBCol md="6" class="mb-3">
-                <MDBInput v-model="form.price" label="Prix HT" type="number" step="0.01" />
+                <MDBInput
+                  v-model="form.price"
+                  label="Prix HT"
+                  type="number"
+                  step="0.01"
+                />
               </MDBCol>
               <MDBCol md="6" class="mb-3">
                 <MDBInput v-model="form.stock" label="Stock" type="number" />
@@ -35,7 +53,11 @@
               <MDBCol md="6" class="mb-3">
                 <label for="tva">TVA</label>
                 <select v-model="form.tva" class="form-control">
-                  <option v-for="tva in tvaOptions" :key="tva.Id_Tva" :value="tva.Id_Tva">
+                  <option
+                    v-for="tva in tvaOptions"
+                    :key="tva.Id_Tva"
+                    :value="tva.Id_Tva"
+                  >
                     {{ tva.Name }}
                   </option>
                 </select>
@@ -43,7 +65,11 @@
               <MDBCol md="6" class="mb-3">
                 <label for="season">Saison</label>
                 <select v-model="form.season" class="form-control">
-                  <option v-for="season in seasonOptions" :key="season.Id_Season" :value="season.Id_Season">
+                  <option
+                    v-for="season in seasonOptions"
+                    :key="season.Id_Season"
+                    :value="season.Id_Season"
+                  >
                     {{ season.Name }}
                   </option>
                 </select>
@@ -58,36 +84,55 @@
                 </select>
               </MDBCol>
               <MDBCol md="7" class="mb-3">
-                <MDBInput v-model="form.unitValue" :label="'Valeur de l\'unité (' + form.unitType + ')'" type="number" step="0.01" />
+                <MDBInput
+                  v-model="form.unitValue"
+                  :label="'Valeur de l\'unité (' + form.unitType + ')'"
+                  type="number"
+                  step="0.01"
+                />
               </MDBCol>
               <MDBCol md="6" class="mb-3">
-                <MDBInput v-model="form.discount" label="Discount" type="number" step="0.01" />
+                <MDBInput
+                  v-model="form.discount"
+                  label="Discount"
+                  type="number"
+                  step="0.01"
+                />
               </MDBCol>
               <MDBCol md="12" class="mb-3">
-                <MDBInput v-model="form.password" label="Confirmer avec votre mot de passe" type="password" />
+                <MDBInput
+                  v-model="form.password"
+                  label="Confirmer avec votre mot de passe"
+                  type="password"
+                />
               </MDBCol>
             </MDBRow>
 
             <MDBRow>
               <MDBCol md="6" class="text-center mb-3">
-                <MDBBtn color="success" @click="verifyPasswordAndSubmit">Valider</MDBBtn>
+                <MDBBtn color="success" @click="verifyPasswordAndSubmit"
+                  >Valider</MDBBtn
+                >
               </MDBCol>
               <MDBCol md="6" class="text-center mb-3">
                 <MDBBtn color="danger" @click="resetForm">Annuler</MDBBtn>
               </MDBCol>
             </MDBRow>
-            <div v-if="successMessage" class="text-center text-success">{{ successMessage }}</div>
-            <div v-if="errorMessage" class="text-center text-danger">{{ errorMessage }}</div>
+            <div v-if="successMessage" class="text-center text-success">
+              {{ successMessage }}
+            </div>
+            <div v-if="errorMessage" class="text-center text-danger">
+              {{ errorMessage }}
+            </div>
           </MDBCardBody>
         </MDBCard>
       </MDBCol>
     </MDBRow>
   </MDBContainer>
 </template>
-
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useRouter } from 'vue-router';
+import { useRouter } from "vue-router";
 import {
   MDBContainer,
   MDBRow,
@@ -100,6 +145,7 @@ import {
 import axios from "axios";
 
 const form = ref({
+  productName: "",
   name: "",
   description: "",
   price: 0,
@@ -113,39 +159,47 @@ const form = ref({
 });
 
 const userId = ref<number | null>(null);
-const tvaOptions = ref<{ Id_Tva: number, Name: string }[]>([]);
-const seasonOptions = ref<{ Id_Season: number, Name: string }[]>([]);
+const producerId = ref<number | null>(null);
+const tvaOptions = ref<{ Id_Tva: number; Name: string }[]>([]);
+const seasonOptions = ref<{ Id_Season: number; Name: string }[]>([]);
 const imagePreview = ref("https://via.placeholder.com/150");
 const successMessage = ref("");
 const errorMessage = ref("");
+const imageFile = ref<File | null>(null);
+
+const imageInputRef = ref<HTMLInputElement | null>(null);
 
 const router = useRouter();
 
 const fetchTvaOptions = async () => {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/tva');
+    const response = await axios.get("http://127.0.0.1:8000/tva");
     tvaOptions.value = response.data;
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const fetchSeasonOptions = async () => {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/seasons');
+    const response = await axios.get("http://127.0.0.1:8000/seasons");
     seasonOptions.value = response.data;
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const fetchUserId = async () => {
   try {
     const token = localStorage.getItem("authToken");
-    const userResponse = await axios.get("http://127.0.0.1:8000/users_by_token", {
-      params: { token },
-    });
+    const userResponse = await axios.get(
+      "http://127.0.0.1:8000/users_by_token",
+      {
+        params: { token },
+      }
+    );
     userId.value = userResponse.data.Id_Users;
-  } catch (error) {
-  }
+    const producerResponse = await axios.get(
+      `http://127.0.0.1:8000/producers_by_user/${userResponse.data.Id_Users}`
+    );
+    producerId.value = producerResponse.data.Id_Producers;
+  } catch (error) {}
 };
 
 onMounted(() => {
@@ -155,11 +209,15 @@ onMounted(() => {
 });
 
 const triggerImageUpload = () => {
-  (refs.imageInput as HTMLInputElement).click();
+  if (imageInputRef.value) {
+    imageInputRef.value.click();
+  }
 };
+
 const onImageUpload = (event: Event) => {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (file) {
+    imageFile.value = file;
     const reader = new FileReader();
     reader.onload = (e) => {
       imagePreview.value = e.target?.result as string;
@@ -171,18 +229,21 @@ const onImageUpload = (event: Event) => {
 const verifyPasswordAndSubmit = async () => {
   errorMessage.value = "";
   try {
-    const response = await axios.post('http://127.0.0.1:8000/users/verify_password', {
-      user_id: userId.value,
-      password: form.value.password
-    });
+    const response = await axios.post(
+      "http://127.0.0.1:8000/users/verify_password",
+      {
+        user_id: userId.value,
+        password: form.value.password,
+      }
+    );
 
     if (response.data) {
       await submitForm();
     } else {
-      errorMessage.value = 'Mot de passe incorrect';
+      errorMessage.value = "Mot de passe incorrect";
     }
   } catch (error) {
-    errorMessage.value = 'Mot de passe incorrect';
+    errorMessage.value = "Mot de passe incorrect";
   }
 };
 
@@ -192,38 +253,60 @@ const submitForm = async () => {
       Kg: form.value.unitType === "Kg" ? form.value.unitValue : 0,
       Litre: form.value.unitType === "Litre" ? form.value.unitValue : 0,
       Unit: form.value.unitType === "Unit" ? form.value.unitValue : 0,
-      Gramme: form.value.unitType === "Gramme" ? form.value.unitValue : 0
+      Gramme: form.value.unitType === "Gramme" ? form.value.unitValue : 0,
     },
     products: {
       Name: form.value.name,
       Description: form.value.description,
       Price_ht: form.value.price,
       Active: true,
-      Date_activation: new Date().toISOString().split('T')[0],
-      Date_stop: new Date().toISOString().split('T')[0],
+      Date_activation: new Date().toISOString().split("T")[0],
+      Date_stop: new Date().toISOString().split("T")[0],
       Discount: form.value.discount,
-      Id_tva: form.value.tva
-    }
+      Id_tva: form.value.tva,
+    },
   };
 
   try {
-    const response = await axios.post(`http://127.0.0.1:8000/producers/10/create_product_by_producer?quantity=${form.value.stock}&season=${form.value.season}`, payload, {
-      headers: {
-        'accept': 'application/json',
-        'Content-Type': 'application/json'
+    const response = await axios.post(
+      `http://127.0.0.1:8000/producers/${producerId.value}/create_product_by_producer?quantity=${form.value.stock}&season=${form.value.season}`,
+      payload,
+      {
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+        },
       }
-    });
-    successMessage.value = 'Produit créé avec succès';
+    );
+
+    const productId = response.data.Id_Product;
+
+    if (imageFile.value) {
+      const formData = new FormData();
+      formData.append("product_id", productId.toString());
+      formData.append("field_name", "Id_Product");
+      formData.append("nom", form.value.productName);
+      formData.append("file", imageFile.value);
+
+      await axios.post(`http://127.0.0.1:8000/produit_image/`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    }
+
+    successMessage.value = "Produit créé avec succès";
     setTimeout(() => {
-      router.push('/');
+      router.push("/");
     }, 5000);
   } catch (error) {
-    errorMessage.value = 'Il manque des informations pour ce produit';
+    errorMessage.value = "Il manque des informations pour ce produit";
   }
 };
 
 const resetForm = () => {
   form.value = {
+    productName: "",
     name: "",
     description: "",
     price: 0,
@@ -240,7 +323,6 @@ const resetForm = () => {
   successMessage.value = "";
 };
 </script>
-
 <style scoped>
 .image-upload-section {
   display: flex;
@@ -251,7 +333,7 @@ const resetForm = () => {
 .product-image {
   width: 150px;
   height: 150px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 10px;
   border: 2px solid #ddd;
 }

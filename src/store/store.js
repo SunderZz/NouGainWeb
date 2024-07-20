@@ -80,8 +80,7 @@ const store = createStore({
           });
           commit("SET_PRODUCTS", products);
         })
-        .catch((error) => {
-        });
+        .catch((error) => {});
     },
   },
 });

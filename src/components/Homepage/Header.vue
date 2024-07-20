@@ -22,12 +22,17 @@
             </MDBBtn>
           </form>
           <div class="search-results-container" v-if="searchQuery.length >= 2">
-            <div v-if="products.length || recipes.length" class="search-results">
+            <div
+              v-if="products.length || recipes.length"
+              class="search-results"
+            >
               <template v-if="products.length">
                 <h5>Produits</h5>
                 <ul>
                   <li v-for="product in products" :key="product.Id_Product">
-                    <router-link :to="`/ProductDetail/${product.Id_Product}`">{{ product.Name }}</router-link>
+                    <router-link :to="`/ProductDetail/${product.Id_Product}`">{{
+                      product.Name
+                    }}</router-link>
                   </li>
                 </ul>
               </template>
@@ -35,7 +40,9 @@
                 <h5>Recettes</h5>
                 <ul>
                   <li v-for="recipe in recipes" :key="recipe.Id_Recipes">
-                    <router-link :to="`/RecipesDetail/${recipe.Id_Recipes}`">{{ recipe.Title }}</router-link>
+                    <router-link :to="`/RecipesDetail/${recipe.Id_Recipes}`">{{
+                      recipe.Title
+                    }}</router-link>
                   </li>
                 </ul>
               </template>
@@ -63,11 +70,7 @@
               <MDBIcon icon="shopping-cart" size="sm" />
               <span class="badge">{{ cartItemCount }}</span>
             </MDBNavbarBrand>
-            <MDBBtn
-              v-if="authToken"
-              class="custom-logout-btn"
-              @click="logout"
-            >
+            <MDBBtn v-if="authToken" class="custom-logout-btn" @click="logout">
               <MDBIcon fas icon="sign-out-alt" />
             </MDBBtn>
           </MDBNavbarNav>
@@ -132,12 +135,11 @@ const search = async () => {
       }),
     ]);
 
-    products.value = productResponse.data
-      .filter(
-        (product) =>
-          product.Active &&
-          product.Name.toLowerCase().includes(searchQuery.value.toLowerCase())
-      );
+    products.value = productResponse.data.filter(
+      (product) =>
+        product.Active &&
+        product.Name.toLowerCase().includes(searchQuery.value.toLowerCase())
+    );
     recipes.value = recipeResponse.data.filter(
       (recipe) =>
         recipe &&
@@ -169,7 +171,7 @@ const checkUserProfile = async () => {
       const producerResponse = await axios.get<{ Id_Producers: number }>(
         `http://127.0.0.1:8000/producers_by_user/${userId.value}`
       );
-      
+
       if (producerResponse.data.Id_Producers) {
         userProfileLink.value = "/ProfilAgriculteur";
       } else {
@@ -187,7 +189,7 @@ const logout = async () => {
   if (userId.value === null) {
     return;
   }
-  
+
   try {
     await axios.delete("http://127.0.0.1:8000/users/logout", {
       data: { user_id: userId.value },
@@ -205,8 +207,7 @@ const logout = async () => {
     router.push("/").then(() => {
       location.reload();
     });
-  } catch (error: any) {
-  }
+  } catch (error: any) {}
 };
 
 onMounted(() => {
@@ -215,7 +216,8 @@ onMounted(() => {
 </script>
 
 <style>
-.custom-btn, .custom-logout-btn {
+.custom-btn,
+.custom-logout-btn {
   height: 35px;
   width: 35px;
   display: flex;
@@ -234,7 +236,7 @@ onMounted(() => {
   position: absolute;
   top: 12px;
   right: 10px;
-  height:35px;
+  height: 35px;
   background-color: red;
   color: white;
 }

@@ -49,20 +49,25 @@
             md="4"
             class="mb-4"
           >
-            <MDBCard>
+            <MDBCard class="product-card">
               <MDBCardBody>
                 <MDBCardTitle class="text-center">{{
                   product.Name
                 }}</MDBCardTitle>
                 <a :href="`#/ProductDetail/${product.Id_Product}`">
-                  <MDBCardImg
-                    :src="product.imageUrl || defaultImage"
-                    top
-                    alt="Product image"
-                  />
+                  <div class="image-container">
+                    <MDBCardImg
+                      :src="productImages[product.Id_Product] || defaultImage"
+                      alt="Product image"
+                      class="product-image"
+                    />
+                  </div>
                 </a>
                 <MDBCardText>{{ product.Description }}</MDBCardText>
-                <div v-if="userIsCustomer" class="d-flex align-items-center justify-content-between">
+                <div
+                  v-if="userIsCustomer"
+                  class="d-flex align-items-center justify-content-between"
+                >
                   <div class="d-flex align-items-center">
                     <MDBBtn
                       v-if="product.quantity > 0"
@@ -130,7 +135,6 @@ interface Product {
   Description: string;
   Price_ht: number;
   quantity: number;
-  imageUrl: string;
   Discount?: number;
   Active: boolean;
 }
@@ -156,11 +160,38 @@ const products = ref<Product[]>([]);
 const filteredProducts = ref<Product[]>([]);
 const selectedProducts = ref<Set<string>>(new Set());
 const defaultImage = "https://via.placeholder.com/300";
+const productImages = ref<{ [key: number]: string }>({});
+
+const fetchProductImage = async (productId: number): Promise<string> => {
+  try {
+    const response = await axios.get(
+      `http://127.0.0.1:8000/produit_image?produit_image_id=${productId}&field_name=Id_Product`,
+      { responseType: "blob" }
+    );
+    if (response.data) {
+      return URL.createObjectURL(response.data);
+    }
+  } catch (error) {
+  }
+  return defaultImage;
+};
+
+const fetchProductImages = async (products: Product[]): Promise<void> => {
+  for (const product of products) {
+    productImages.value[product.Id_Product] = await fetchProductImage(product.Id_Product);
+  }
+};
 
 const fetchProducts = async (): Promise<void> => {
   await store.dispatch("fetchProducts");
-  products.value = store.state.products.filter((product: Product) => product.Active) as Product[];
-  filteredProducts.value = products.value;
+  const fetchedProducts = store.state.products.filter(
+    (product: Product) => product.Active
+  ) as Product[];
+
+  products.value = fetchedProducts;
+  filteredProducts.value = fetchedProducts;
+
+  await fetchProductImages(fetchedProducts);
 };
 
 const fetchFilters = async (): Promise<void> => {
@@ -171,8 +202,7 @@ const fetchFilters = async (): Promise<void> => {
       id: season.Id_Season,
       checked: false,
     }));
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 onMounted(async () => {
@@ -205,7 +235,10 @@ const incrementQuantity = async (product: Product): Promise<void> => {
   });
 };
 
-const decrementQuantity = async (product: Product, index: number): Promise<void> => {
+const decrementQuantity = async (
+  product: Product,
+  index: number
+): Promise<void> => {
   if (!isUserLoggedIn()) {
     router.push("/Login");
     return;
@@ -250,8 +283,7 @@ const removeProduct = async (productId: number): Promise<void> => {
     await axios.delete(`http://127.0.0.1:8000/linede/${orderId}/${productId}`);
     localStorage.removeItem(`product_${productId}_quantity`);
     store.commit("DECREMENT_CART_ITEM_COUNT");
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const emitSelectedProducts = (): void => {
@@ -305,10 +337,11 @@ const filterProducts = async (): Promise<void> => {
     const seasonProducts = response.data;
 
     filteredProducts.value = products.value.filter((product) => {
-      return seasonProducts.some((sp: any) => sp.Id_Product === product.Id_Product);
+      return seasonProducts.some(
+        (sp: any) => sp.Id_Product === product.Id_Product
+      );
     });
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const getUserFromToken = async (): Promise<any> => {
@@ -329,7 +362,6 @@ const getUserFromToken = async (): Promise<any> => {
 
 const getCustomerById = async (customerId: number): Promise<any> => {
   try {
-
     const response = await axios.get(
       `http://127.0.0.1:8000/user_by_id?customers=${customerId}`
     );
@@ -339,7 +371,10 @@ const getCustomerById = async (customerId: number): Promise<any> => {
   }
 };
 
-const addOrUpdateCart = async (productId: number, quantity: number): Promise<void> => {
+const addOrUpdateCart = async (
+  productId: number,
+  quantity: number
+): Promise<void> => {
   const user = await getUserFromToken();
   if (!user) {
     return;
@@ -363,7 +398,7 @@ const addOrUpdateCart = async (productId: number, quantity: number): Promise<voi
       });
 
       orderId = response.data.Id_Orders;
-      
+
       localStorage.setItem("orderId", orderId);
     } catch (error) {
       return;
@@ -378,8 +413,7 @@ const addOrUpdateCart = async (productId: number, quantity: number): Promise<voi
         Id_Product: productId,
         qte: quantity,
       });
-    } catch (error) {
-    }
+    } catch (error) {}
   } else {
     try {
       await axios.post("http://127.0.0.1:8000/linede/orders", {
@@ -387,12 +421,14 @@ const addOrUpdateCart = async (productId: number, quantity: number): Promise<voi
         Id_Product: productId,
         qte: quantity,
       });
-    } catch (error) {
-    }
+    } catch (error) {}
   }
 };
 
-const checkExistingLine = async (orderId: string, productId: number): Promise<any> => {
+const checkExistingLine = async (
+  orderId: string,
+  productId: number
+): Promise<any> => {
   try {
     const response = await axios.get(`http://127.0.0.1:8000/linede/${orderId}`);
     const data = response.data;
@@ -483,5 +519,24 @@ watch(
   right: 10px;
   background-color: red;
   color: white;
+}
+.image-container {
+  width: 100%;
+  height: 300px; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+.product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.product-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 </style>

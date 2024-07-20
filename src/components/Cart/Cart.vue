@@ -137,7 +137,10 @@
         </a>
       </MDBCol>
       <MDBCol md="4" class="text-center mb-3">
-        <MDBBtn color="success" :disabled="!isDeliverySelected" @click="validatePayment"
+        <MDBBtn
+          color="success"
+          :disabled="!isDeliverySelected"
+          @click="validatePayment"
           >Valider le paiement</MDBBtn
         >
       </MDBCol>
@@ -253,8 +256,7 @@ const fetchPersonalInfo = async (): Promise<void> => {
     personalInfo.value.firstName = userResponse.data.F_Name;
     personalInfo.value.lastName = userResponse.data.Name;
     personalInfo.value.email = userResponse.data.Mail;
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const fetchCartProducts = async (): Promise<void> => {
@@ -275,12 +277,25 @@ const fetchCartProducts = async (): Promise<void> => {
       const productResponse = await axios.get(
         `http://127.0.0.1:8000/products_by_id/?id=${item.Id_Product}`
       );
-      return { ...productResponse.data, quantity: item.qte };
+      const product: Product = productResponse.data;
+      product.quantity = item.qte;
+
+      let imageUrl = "https://via.placeholder.com/100";
+      try {
+        const imageResponse = await axios.get(
+          `http://127.0.0.1:8000/produit_image?produit_image_id=${product.Id_Product}&field_name=Id_Product`,
+          { responseType: "blob" }
+        );
+        imageUrl = URL.createObjectURL(imageResponse.data);
+      } catch (error) {
+      }
+
+      product.image = imageUrl;
+      return product;
     });
 
     products.value = await Promise.all(productRequests);
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const incrementQuantity = async (product: Product): Promise<void> => {
@@ -298,7 +313,10 @@ const incrementQuantity = async (product: Product): Promise<void> => {
   });
 };
 
-const decrementQuantity = async (product: Product, index: number): Promise<void> => {
+const decrementQuantity = async (
+  product: Product,
+  index: number
+): Promise<void> => {
   if (product.quantity > 0) {
     product.quantity--;
     localStorage.setItem(
@@ -323,7 +341,10 @@ const decrementQuantity = async (product: Product, index: number): Promise<void>
   }
 };
 
-const removeProduct = async (productId: number, index: number): Promise<void> => {
+const removeProduct = async (
+  productId: number,
+  index: number
+): Promise<void> => {
   const orderId = localStorage.getItem("orderId");
   if (!orderId) {
     return;
@@ -334,11 +355,13 @@ const removeProduct = async (productId: number, index: number): Promise<void> =>
     products.value.splice(index, 1);
     localStorage.removeItem(`product_${productId}_quantity`);
     store.commit("DECREMENT_CART_ITEM_COUNT");
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
-const addOrUpdateCart = async (productId: number, quantity: number): Promise<void> => {
+const addOrUpdateCart = async (
+  productId: number,
+  quantity: number
+): Promise<void> => {
   const orderId = localStorage.getItem("orderId");
   if (!orderId) {
     return;
@@ -350,8 +373,7 @@ const addOrUpdateCart = async (productId: number, quantity: number): Promise<voi
       Id_Product: productId,
       qte: quantity,
     });
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const emptyCart = async (): Promise<void> => {
@@ -379,8 +401,7 @@ const emptyCart = async (): Promise<void> => {
     products.value = [];
     localStorage.removeItem("orderId");
     store.commit("RESET_CART_ITEM_COUNT");
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const toggleDeliveryMethod = async (method: string): Promise<void> => {
@@ -393,7 +414,7 @@ const toggleDeliveryMethod = async (method: string): Promise<void> => {
       const productId = products.value[0].Id_Product;
       const producerId = await getProducerId(productId);
       const producerInfo = await getProducerInfo(producerId);
-      const addressId = await getAddressId(producerInfo.Id_Users);      
+      const addressId = await getAddressId(producerInfo.Id_Users);
       await fetchProducerAddress(addressId);
     } else {
       deliveryInfo.value.relayPoint = false;
@@ -410,19 +431,19 @@ const fetchUserAddress = async (): Promise<void> => {
       params: { token },
     });
     const user = response.data;
-    
+
     const addressResponse = await axios.get(
       `http://127.0.0.1:8000/adresses_types_by_user/${user.Id_Users}`
     );
-    
+
     const adresse_id = addressResponse.data;
 
     const adresseInformations = await axios.get(
       `http://127.0.0.1:8000/adresse_of_user?adresse_id=${adresse_id.Id_Users_adresses}`
     );
-    
+
     const userAddressData = adresseInformations.data[0];
-    
+
     const locatedResponse = await axios.get(
       `http://127.0.0.1:8000/located/${adresse_id.Id_Users_adresses}`
     );
@@ -447,10 +468,9 @@ const fetchUserAddress = async (): Promise<void> => {
     deliveryForm.value.phone = userAddressData.Phone;
     deliveryForm.value.postalCode = codePostal.code_postal;
     deliveryForm.value.city = city.Name;
-    
+
     userAddress.value = userAddressData.Adresse;
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const getProducerId = async (productId: number): Promise<number> => {
@@ -490,15 +510,13 @@ const fetchProducerAddress = async (addressId: number): Promise<void> => {
       `http://127.0.0.1:8000/adresse_of_user?adresse_id=${addressId}`
     );
     const producerAddressData = response.data[0];
-    
+
     deliveryForm.value.address = producerAddressData.Adresse;
     deliveryForm.value.phone = producerAddressData.Phone;
     deliveryForm.value.postalCode = producerAddressData.code_postal;
     deliveryForm.value.city = producerAddressData.city;
     producerAddress.value = producerAddressData;
-    
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const validatePayment = async (): Promise<void> => {
@@ -510,14 +528,20 @@ const validatePayment = async (): Promise<void> => {
   }
 
   try {
-    const userResponse = await axios.get("http://127.0.0.1:8000/users_by_token", {
-      params: { token },
-    });
+    const userResponse = await axios.get(
+      "http://127.0.0.1:8000/users_by_token",
+      {
+        params: { token },
+      }
+    );
     const userId = userResponse.data.Id_Users;
 
-    const customerResponse = await axios.get(`http://127.0.0.1:8000/user_by_id`, {
-      params: { customers: userId },
-    });
+    const customerResponse = await axios.get(
+      `http://127.0.0.1:8000/user_by_id`,
+      {
+        params: { customers: userId },
+      }
+    );
     const idCasual = customerResponse.data.Id_Casual;
 
     let preferenceShip = deliveryInfo.value.homeDelivery
@@ -537,8 +561,7 @@ const validatePayment = async (): Promise<void> => {
       path: "/ValidateCart",
       query: { orderId, preferenceShip },
     });
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 onMounted((): void => {
@@ -562,14 +585,18 @@ onMounted((): void => {
 .product-img {
   width: 100px;
   height: 100px;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .text-center {
   text-align: center;
 }
 
-html, body, #app, .container, .mt-4 {
+html,
+body,
+#app,
+.container,
+.mt-4 {
   height: 100%;
 }
 

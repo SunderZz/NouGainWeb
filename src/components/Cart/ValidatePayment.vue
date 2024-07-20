@@ -135,7 +135,18 @@ const fetchOrderDetails = async (): Promise<void> => {
       const product: Product = productResponse.data;
       product.quantity = item.qte;
       product.priceHT = product.Price_ht;
-      product.image = product.image_url || "https://via.placeholder.com/100";
+
+      let imageUrl = "https://via.placeholder.com/100";
+      try {
+        const imageResponse = await axios.get(
+          `http://127.0.0.1:8000/produit_image?produit_image_id=${product.Id_Product}&field_name=Id_Product`,
+          { responseType: "blob" }
+        );
+        imageUrl = URL.createObjectURL(imageResponse.data);
+      } catch (error) {
+      }
+
+      product.image = imageUrl;
       orderInfo.value.amountHT += product.priceHT * product.quantity;
       return product;
     });
@@ -143,8 +154,7 @@ const fetchOrderDetails = async (): Promise<void> => {
     products.value = await Promise.all(productRequests);
 
     orderInfo.value.totalAmount = orderInfo.value.amountHT;
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const cleanUpTokens = (): void => {
@@ -189,6 +199,6 @@ onBeforeUnmount(() => {
 .product-img {
   width: 100px;
   height: 100px;
-  object-fit: cover;
+  object-fit: contain;
 }
 </style>

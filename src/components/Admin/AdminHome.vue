@@ -12,9 +12,15 @@
             Menu
           </MDBDropdownToggle>
           <MDBDropdownMenu aria-labelledby="dropdownMenuLink">
-            <MDBDropdownItem tag="router-link" to="/AdminProducts">Produits</MDBDropdownItem>
-            <MDBDropdownItem tag="router-link" to="/AdminProducteurs">Producteurs</MDBDropdownItem>
-            <MDBDropdownItem tag="router-link" to="/AdminRecipes">Recettes</MDBDropdownItem>
+            <MDBDropdownItem tag="router-link" to="/AdminProducts"
+              >Produits</MDBDropdownItem
+            >
+            <MDBDropdownItem tag="router-link" to="/AdminProducteurs"
+              >Producteurs</MDBDropdownItem
+            >
+            <MDBDropdownItem tag="router-link" to="/AdminRecipes"
+              >Recettes</MDBDropdownItem
+            >
           </MDBDropdownMenu>
         </MDBDropdown>
       </MDBCol>
@@ -221,11 +227,12 @@ const fetchProducers = async () => {
         `http://127.0.0.1:8000/users/${producer.Id_Users}`
       );
       const producerDetails = producerResponse.data;
+      const photoUrl = await fetchProducerPhoto(producer.Id_Users);
 
       return {
         id: producer.Id_Producers,
         Id_Users: producer.Id_Users,
-        photo: producer.Photo || "https://via.placeholder.com/100",
+        photo: photoUrl,
         active: producerDetails.active,
         firstName: producerDetails.F_Name,
         lastName: producerDetails.Name,
@@ -234,21 +241,55 @@ const fetchProducers = async () => {
     });
 
     producers.value = await Promise.all(producerDetailsPromises);
+  } catch (error) {}
+};
+
+const fetchProducerPhoto = async (userId: number): Promise<string> => {
+  const defaultImage = "https://via.placeholder.com/100";
+  try {
+    const imageResponse = await axios.get(
+      `http://127.0.0.1:8000/produit_image/?produit_image_id=${userId}&field_name=Id_Users`,
+      { responseType: "blob" }
+    );
+    const imageUrl = URL.createObjectURL(imageResponse.data);
+    return imageUrl;
   } catch (error) {
+    return defaultImage;
   }
 };
 
 const fetchProducts = async () => {
   try {
     const response = await axios.get("http://127.0.0.1:8000/products/");
-    products.value = response.data.map((product: any) => ({
-      id: product.Id_Product,
-      photo: product.imageUrl || "https://via.placeholder.com/100",
-      name: product.Name,
-      description: product.Description,
-      active: product.Active,
-    }));
+    const productsData = response.data;
+
+    const productDetailsPromises = productsData.map(async (product: any) => {
+      const photoUrl = await fetchProductPhoto(product.Id_Product);
+
+      return {
+        id: product.Id_Product,
+        photo: photoUrl,
+        name: product.Name,
+        description: product.Description,
+        active: product.Active,
+      };
+    });
+
+    products.value = await Promise.all(productDetailsPromises);
+  } catch (error) {}
+};
+
+const fetchProductPhoto = async (productId: number): Promise<string> => {
+  const defaultImage = "https://via.placeholder.com/100";
+  try {
+    const imageResponse = await axios.get(
+      `http://127.0.0.1:8000/produit_image/?produit_image_id=${productId}&field_name=Id_Product`,
+      { responseType: "blob" }
+    );
+    const imageUrl = URL.createObjectURL(imageResponse.data);
+    return imageUrl;
   } catch (error) {
+    return defaultImage;
   }
 };
 
@@ -266,8 +307,7 @@ const fetchAdminId = async () => {
       `http://127.0.0.1:8000/admin/${userId}`
     );
     adminId.value = adminResponse.data.Id_Admin;
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const toggleSection = (section: string) => {
@@ -281,7 +321,7 @@ const toggleSection = (section: string) => {
 
 const approveProducer = async (userId: number) => {
   if (adminId.value === null) return;
-  
+
   try {
     await axios.put(
       "http://127.0.0.1:8000/admin/producers/active_state",
@@ -295,8 +335,7 @@ const approveProducer = async (userId: number) => {
       }
     );
     fetchProducers();
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const rejectProducer = async (userId: number) => {
@@ -315,8 +354,7 @@ const rejectProducer = async (userId: number) => {
       }
     );
     fetchProducers();
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const approveProduct = async (productId: number) => {
@@ -331,8 +369,7 @@ const approveProduct = async (productId: number) => {
       },
     });
     fetchProducts();
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 const rejectProduct = async (productId: number) => {
@@ -347,8 +384,7 @@ const rejectProduct = async (productId: number) => {
       },
     });
     fetchProducts();
-  } catch (error) {
-  }
+  } catch (error) {}
 };
 
 onMounted(() => {
@@ -363,7 +399,7 @@ onMounted(() => {
 .product-img {
   width: 100px;
   height: 100px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 5px;
 }
 
